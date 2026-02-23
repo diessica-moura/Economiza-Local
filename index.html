@@ -78,13 +78,44 @@
     </div>
 
     <script>
-        const produtos = [
-            { id: 1, nome: "Leite 1L", marca: "Piracanjuba", precoM1: 4.89, precoM2: 5.20, precoM3: 4.75, promo: true },
-            { id: 2, nome: "Leite 1L", marca: "Frimesa", precoM1: 4.95, precoM2: 4.80, precoM3: 5.10, promo: false },
-            { id: 13, nome: "Alcatra KG", marca: "Bovino", precoM1: 39.90, precoM2: 42.50, precoM3: 38.80, promo: true },
-            { id: 16, nome: "Detergente 500ml", marca: "Ipê", precoM1: 2.50, precoM2: 2.35, precoM3: 2.60, promo: true },
-            { id: 4, nome: "Café 500g", marca: "Melitta", precoM1: 1.50, precoM2: 1.20, precoM3: 1.00, promo: true }
-        ];
+        const produtos = URL_PLANILHA = https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv;
+
+let produtos = []; 
+
+async function carregarDadosDaPlanilha() {
+    try {
+        const resposta = await fetch(URL_PLANILHA);
+        const texto = await resposta.text();
+        
+        // Divide o texto em linhas e pula o cabeçalho
+        const linhas = texto.split(/\r?\n/).slice(1);
+        
+        produtos = linhas.map(linha => {
+            const col = linha.split(/[,;]/); // Aceita vírgula ou ponto e vírgula
+            if (col.length < 6) return null;
+            return {
+                id: parseInt(col[0]),
+                nome: col[1],
+                marca: col[2],
+                precoM1: parseFloat(col[3].replace(',', '.')),
+                precoM2: parseFloat(col[4].replace(',', '.')),
+                precoM3: parseFloat(col[5].replace(',', '.'))
+            };
+        }).filter(item => item !== null);
+
+        // ATUALIZA A TELA COM OS DADOS DA PLANILHA
+        renderizarHome(produtos); 
+        console.log("Planilha carregada com sucesso!");
+    } catch (erro) {
+        console.error("Erro ao conectar com a planilha:", erro);
+    }
+}
+
+// 3. MANDAR O SITE EXECUTAR ISSO ASSIM QUE ABRIR
+window.onload = () => {
+    carregarDadosDaPlanilha();
+    if (typeof gerarQRCode === "function") gerarQRCode();
+};
         const mercados = [{ id: 'M1', nome: "Mercado Copagril" }, { id: 'M2', nome: "Supermercado Waimman" }, { id: 'M3', nome: "Hiper Rimava" }];
         let minhaLista = [];
         let mercadoAtualId = null;
@@ -240,6 +271,7 @@
     </script>
 </body>
 </html>
+
 
 
 
