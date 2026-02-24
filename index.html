@@ -35,7 +35,7 @@
             </div>
             <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic"></div>
             <div class="relative">
-                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." 
+                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="O que você procura hoje?" 
                     class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
             </div>
@@ -94,7 +94,7 @@
                 const texto = await resposta.text();
                 const linhas = texto.split(/\r?\n/);
                 const cabecalho = linhas[0].split(/[,;]/);
-                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[14] || 'Hoje'}`;
+                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Dados de: ${cabecalho[14] || 'Hoje'}`;
 
                 produtos = linhas.slice(1).map(linha => {
                     const col = linha.split(/[,;]/);
@@ -131,7 +131,7 @@
                     promoCont.innerHTML += `
                         <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
                             <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
-                            <p class="text-[10px] text-cyan-500 font-black uppercase mt-1">${mIdeal.nome}</p>
+                            <span class="inline-block bg-cyan-100 text-cyan-800 text-[9px] px-2 py-0.5 rounded-full font-black uppercase mb-1">${mIdeal.nome}</span>
                             <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
                         </div>`;
                 });
@@ -146,18 +146,51 @@
                 const minP = Math.min(...precosValidos);
                 const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
 
-                geralCont.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
-                        <div class="flex-1">
-                            <h4 class="text-sm font-bold text-gray-800 uppercase leading-tight">${p.nome}</h4>
-                            <p class="text-[10px] text-gray-400 mb-1">${p.marca}</p>
-                            <div class="flex flex-col">
-                                <span class="text-[11px] text-cyan-500 font-black uppercase tracking-wider">${mIdeal.nome}</span>
-                                <span class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</span>
+                let htmlContent = '';
+
+                if(isBusca) {
+                    // MODO PESQUISA: MOSTRA TODOS OS MERCADOS
+                    htmlContent = `
+                        <div class="bg-white p-4 rounded-2xl border-2 border-blue-100 shadow-md">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="text-sm font-black text-gray-800 uppercase">${p.nome}</h4>
+                                    <p class="text-[10px] text-gray-400">${p.marca}</p>
+                                </div>
+                                ${renderSeletorQtd(p.id, qtd)}
                             </div>
-                        </div>
-                        ${renderSeletorQtd(p.id, qtd)}
-                    </div>`;
+                            <div class="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
+                                ${mercados.map(m => {
+                                    const valor = p[`preco${m.id}`];
+                                    const isMelhor = valor === minP && valor > 0;
+                                    return `
+                                        <div class="text-center p-1.5 rounded-lg ${isMelhor ? 'bg-cyan-50 ring-1 ring-cyan-200' : 'bg-gray-50'}">
+                                            <p class="text-[8px] font-bold text-gray-400 uppercase truncate">${m.nome}</p>
+                                            <p class="text-[11px] font-black ${isMelhor ? 'text-cyan-700' : 'text-gray-600'}">
+                                                ${valor > 0 ? 'R$ ' + valor.toFixed(2) : '---'}
+                                            </p>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                } else {
+                    // MODO HOME: RESUMO COM DESTAQUE NO MELHOR
+                    htmlContent = `
+                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-gray-800 uppercase">${p.nome}</h4>
+                                <div class="flex flex-col items-start gap-1 mt-1">
+                                    <span class="bg-cyan-100 text-cyan-800 text-[10px] px-2 py-0.5 rounded-md font-black uppercase tracking-tight">
+                                        ${mIdeal.nome}
+                                    </span>
+                                    <span class="text-green-600 font-black text-base leading-none">R$ ${minP.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            ${renderSeletorQtd(p.id, qtd)}
+                        </div>`;
+                }
+                geralCont.innerHTML += htmlContent;
             });
         }
 
