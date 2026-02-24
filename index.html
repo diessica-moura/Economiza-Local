@@ -140,7 +140,7 @@
                         id: parseInt(col[0]),
                         nome: col[1],
                         marca: col[2],
-                        promo: col[12] ? col[12].trim().toUpperCase() === 'PROMOCAO' : false
+                        promo: col[12] ? col[12].trim().toUpperCase() === 'PROMOCAO' : NORMAL
                     };
                     mercados.forEach((m, i) => {
                         p[`preco${m.id}`] = parseFloat((col[3 + i] || "0").replace(',', '.'));
