@@ -1,14 +1,352 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>Base44 APP</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EconomizaLocal - Oficial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: #1d4ed8;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
+        .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
+        .item-detalhe { animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #059669; color: #fff;
+            text-align: center; border-radius: 12px; padding: 16px; position: fixed;
+            z-index: 100; left: 50%; transform: translateX(-50%); top: 30px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
+        @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+        ::-webkit-scrollbar { display: none; }
+        .detalhe-itens-carrinho { display: none; }
+        .detalhe-itens-carrinho.aberto { display: block; animation: slideDown 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans">
+
+    <div id="welcome-screen">
+        <div class="mb-6 bg-white p-6 rounded-full shadow-2xl">
+            <i class="fas fa-shopping-basket text-blue-700 text-6xl"></i>
+        </div>
+        <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços dos supermercados de Marechal Cândido Rondon em um só lugar.</p>
+        <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
+            Começar a Economizar
+        </button>
+        <p class="absolute bottom-10 text-[10px] text-blue-300 uppercase font-bold tracking-widest">Versão Oficial 2026</p>
+    </div>
+
+    <div id="app-content">
+        <div id="toast">LISTA ATUALIZADA</div>
+        
+        <header class="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="flex justify-between items-center mb-1">
+                <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-basket"></i> EconomizaLocal</h1>
+                <button onclick="carregarDadosDaPlanilha()" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
+            </div>
+            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic"></div>
+            <div class="relative">
+                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." 
+                    class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </header>
+
+        <main class="px-4 pt-4 pb-28">
+            <section id="tab-melhor-preco" class="tab-content active">
+                <div id="secao-promocoes">
+                    <h2 class="text-xs font-black text-blue-800 uppercase tracking-widest mb-3 italic">🔥 Promoções da Semana</h2>
+                    <div class="flex gap-3 overflow-x-auto pb-4 mb-4" id="promo-container"></div>
+                </div>
+                <h2 id="titulo-lista" class="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">🛒 Comparativo Geral</h2>
+                <div class="grid gap-4" id="comparativo-geral"></div>
+            </section>
+            
+            <section id="tab-mercados" class="tab-content">
+                <div id="lista-mercados" class="grid gap-3"></div>
+                <div id="detalhe-mercado" class="hidden">
+                    <button onclick="voltarMercados()" class="text-blue-600 font-bold mb-4 text-xs uppercase"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <div id="mercado-header-info" class="mb-4"></div>
+                    <div class="grid gap-2" id="produtos-mercado-especifico"></div>
+                </div>
+            </section>
+
+            <section id="tab-carrinho" class="tab-content">
+                <h2 class="text-sm font-bold text-gray-800 mb-4 uppercase text-center italic tracking-widest">Minha Lista de Compras</h2>
+                <div id="carrinho-vazio" class="text-center py-10"><i class="fas fa-receipt text-gray-200 text-6xl mb-4"></i><p class="text-gray-400 text-sm">Sua lista está vazia!</p></div>
+                <div id="resumo-carrinho" class="space-y-3"></div>
+                <div id="btn-limpar-container" class="hidden mt-6 text-center">
+                    <button onclick="limparLista()" class="text-red-400 text-xs font-bold uppercase border-b border-red-200 pb-1 italic">Limpar Lista</button>
+                </div>
+            </section>
+        </main>
+
+        <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 shadow-2xl z-50">
+            <button onclick="showTab('melhor-preco', this)" class="nav-btn active flex flex-col items-center p-2 w-full"><i class="fas fa-award text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Melhor Preço</span></button>
+            <button onclick="showTab('mercados', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-store text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Mercados</span></button>
+            <button onclick="showTab('carrinho', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-shopping-bag text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Minha Lista</span></button>
+        </nav>
+    </div>
+
+    <script>
+        function iniciarApp() {
+            const screen = document.getElementById('welcome-screen');
+            screen.style.opacity = '0';
+            setTimeout(() => { screen.style.visibility = 'hidden'; }, 500);
+        }
+
+        const URL_PLANILHA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv';
+
+        let produtos = [];
+        const mercados = [
+            { id: 'M1', nome: "Copagril" }, { id: 'M2', nome: "Waimann" }, { id: 'M3', nome: "Dilettare" },
+            { id: 'M4', nome: "Allmayer" }, { id: 'M5', nome: "Super Cercar" }, { id: 'M6', nome: "Max Atacadista" },
+            { id: 'M7', nome: "Portuga" }, { id: 'M8', nome: "Wink" }, { id: 'M9', nome: "Super Favorito" }
+        ];
+        let minhaLista = [];
+        let mercadoAtualId = null;
+
+        async function carregarDadosDaPlanilha() {
+            try {
+                const resposta = await fetch(URL_PLANILHA + '&t=' + new Date().getTime());
+                const texto = await resposta.text();
+                const linhas = texto.split(/\r?\n/);
+                const cabecalho = linhas[0].split(/[,;]/);
+                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[14] || 'Hoje'}`;
+
+                produtos = linhas.slice(1).map(linha => {
+                    const col = linha.split(/[,;]/);
+                    if (col.length < 12 || !col[0]) return null;
+                    let p = {
+                        id: parseInt(col[0]),
+                        nome: col[1],
+                        marca: col[2],
+                        promo: col[12] ? col[12].trim().toUpperCase() === 'PROMOCAO' : NORMAL
+                    };
+                    mercados.forEach((m, i) => {
+                        p[`preco${m.id}`] = parseFloat((col[3 + i] || "0").replace(',', '.'));
+                    });
+                    return p;
+                }).filter(item => item !== null);
+
+                filtrarProdutos();
+                renderizarMercados();
+            } catch (erro) { console.error("Erro:", erro); }
+        }
+
+        function renderizarHome(listaParaExibir, isBusca) {
+            const geralCont = document.getElementById('comparativo-geral');
+            const promoCont = document.getElementById('promo-container');
+            geralCont.innerHTML = '';
+            
+            if(!isBusca) {
+                document.getElementById('secao-promocoes').classList.remove('hidden');
+                promoCont.innerHTML = '';
+                produtos.filter(p => p.promo).forEach(p => {
+                    const precos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
+                    const minP = Math.min(...precos);
+                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
+                    promoCont.innerHTML += `
+                        <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
+                            <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
+                            <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal.nome}</p>
+                            <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
+                        </div>`;
+                });
+            } else {
+                document.getElementById('secao-promocoes').classList.add('hidden');
+            }
+
+            listaParaExibir.forEach(p => {
+                const itemNaLista = minhaLista.find(item => item.id === p.id);
+                const qtd = itemNaLista ? itemNaLista.quantidade : 0;
+                const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
+                const minP = Math.min(...precosValidos);
+
+                if(isBusca) {
+                    geralCont.innerHTML += `
+                        <div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
+                            <div class="flex justify-between items-start mb-3">
+                                <div><h4 class="font-black text-gray-800 text-sm uppercase">${p.nome}</h4><p class="text-[10px] text-gray-400">${p.marca}</p></div>
+                                ${renderSeletorQtd(p.id, qtd)}
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-dashed">
+                                ${mercados.map(m => {
+                                    const v = p[`preco${m.id}`];
+                                    return `<div class="text-center p-1 rounded ${v === minP ? 'bg-green-50' : 'bg-gray-50'}">
+                                        <p class="text-[7px] uppercase font-bold text-gray-400">${m.nome}</p>
+                                        <p class="text-[10px] font-black ${v === minP ? 'text-green-600' : 'text-gray-600'}">R$ ${v.toFixed(2)}</p>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                } else {
+                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
+                    geralCont.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
+                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
+                            </div>
+                            ${renderSeletorQtd(p.id, qtd)}
+                        </div>`;
+                }
+            });
+        }
+
+        function renderSeletorQtd(id, qtd) {
+            if (qtd === 0) return `<button onclick="adicionarLista(${id})" class="bg-green-600 text-white text-[10px] px-3 py-2 rounded-lg font-bold uppercase shadow-sm active:scale-95 transition">Adicionar</button>`;
+            return `<div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border">
+                <button onclick="removerItemEspecifico(${id})" class="w-7 h-7 flex items-center justify-center bg-white rounded-md text-red-500 shadow-sm active:scale-75"><i class="fas ${qtd === 1 ? 'fa-trash-alt' : 'fa-minus'} text-[10px]"></i></button>
+                <span class="text-xs font-black text-blue-700 min-w-[15px] text-center">${qtd}</span>
+                <button onclick="adicionarLista(${id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm active:scale-75"><i class="fas fa-plus text-[10px]"></i></button>
+            </div>`;
+        }
+
+        function filtrarProdutos() {
+            const termo = document.getElementById('mainSearch').value.toLowerCase();
+            const filtrados = produtos.filter(p => p.nome.toLowerCase().includes(termo) || p.marca.toLowerCase().includes(termo));
+            renderizarHome(filtrados, termo.length > 0);
+        }
+
+        function adicionarLista(id) { 
+            const item = minhaLista.find(i => i.id === id);
+            if (item) item.quantidade++;
+            else { const p = produtos.find(prod => prod.id === id); minhaLista.push({ ...p, quantidade: 1 }); }
+            atualizarTelas();
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function removerItemEspecifico(id) { 
+            const item = minhaLista.find(i => i.id === id);
+            if (item) {
+                if (item.quantidade > 1) item.quantidade--;
+                else minhaLista = minhaLista.filter(i => i.id !== id);
+            }
+            atualizarTelas();
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function atualizarTelas() {
+            filtrarProdutos();
+            renderizarCarrinho();
+            const x = document.getElementById("toast"); x.className = "show"; setTimeout(() => x.className = x.className.replace("show", ""), 2000);
+        }
+
+        function toggleItensCarrinho(idMercado) {
+            const div = document.getElementById('detalhe-itens-' + idMercado);
+            const icon = document.getElementById('icon-arrow-' + idMercado);
+            div.classList.toggle('aberto');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        function renderizarCarrinho() {
+            const cont = document.getElementById('resumo-carrinho');
+            const vazio = document.getElementById('carrinho-vazio');
+            const btnLimpar = document.getElementById('btn-limpar-container');
+            if(minhaLista.length === 0) { cont.innerHTML = ''; vazio.classList.remove('hidden'); btnLimpar.classList.add('hidden'); return; }
+            vazio.classList.add('hidden'); btnLimpar.classList.remove('hidden');
+            
+            cont.innerHTML = mercados.map(m => {
+                const totalM = minhaLista.reduce((acc, p) => acc + (p[`preco${m.id}`] * p.quantidade), 0);
+                
+                const listaItensHtml = minhaLista.map(p => `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                        <span class="text-[11px] text-gray-600">${p.quantidade}x ${p.nome} <span class="font-bold">(${p.marca})</span></span>
+                        <span class="text-[11px] font-bold text-gray-800">R$ ${(p[`preco${m.id}`] * p.quantidade).toFixed(2)}</span>
+                    </div>
+                `).join('');
+
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                    <div onclick="toggleItensCarrinho('${m.id}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50 transition">
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm">${m.nome} <i id="icon-arrow-${m.id}" class="fas fa-chevron-down text-[10px] ml-1 text-gray-400"></i></h3>
+                            <p class="text-[10px] text-gray-400">${minhaLista.length} itens na lista</p>
+                        </div>
+                        <div class="text-right"><p class="text-lg font-black text-blue-600">R$ ${totalM.toFixed(2)}</p></div>
+                    </div>
+                    <div id="detalhe-itens-${m.id}" class="detalhe-itens-carrinho bg-slate-50 px-4 pb-3">
+                        ${listaItensHtml}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderizarMercados() { 
+            const cont = document.getElementById('lista-mercados'); 
+            cont.innerHTML = mercados.map(m => `
+                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm active:bg-slate-50">
+                    <span class="font-bold text-gray-700">${m.nome}</span>
+                    <i class="fas fa-chevron-right text-gray-200"></i>
+                </div>`).join(''); 
+        }
+
+        function abrirMercado(id) { 
+            mercadoAtualId = id;
+            const m = mercados.find(merc => merc.id === id); 
+            document.getElementById('lista-mercados').classList.add('hidden'); 
+            document.getElementById('detalhe-mercado').classList.remove('hidden'); 
+            document.getElementById('mercado-header-info').innerHTML = `<div class="bg-blue-700 p-4 rounded-xl text-white shadow-md"><h3 class="font-bold">${m.nome}</h3></div>`; 
+            
+            document.getElementById('produtos-mercado-especifico').innerHTML = produtos.map(p => {
+                const itemNaLista = minhaLista.find(item => item.id === p.id);
+                const qtd = itemNaLista ? itemNaLista.quantidade : 0;
+                return `
+                <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm shadow-sm">
+                    <div class="flex-1">
+                        <div class="flex flex-col">
+                            <span class="font-medium text-gray-800">${p.nome}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase">${p.marca}</span>
+                        </div>
+                        <p class="text-[11px] font-bold text-blue-600 mt-1">R$ ${p[`preco${id}`].toFixed(2)}</p>
+                    </div>
+                    ${renderSeletorQtd(p.id, qtd)}
+                </div>`;
+            }).join(''); 
+        }
+
+        function voltarMercados() { 
+            mercadoAtualId = null;
+            document.getElementById('lista-mercados').classList.remove('hidden'); 
+            document.getElementById('detalhe-mercado').classList.add('hidden'); 
+        }
+
+        function limparLista() { 
+            minhaLista = []; 
+            atualizarTelas(); 
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function showTab(id, el) { 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+            document.querySelectorAll('.nav-btn').forEach(b => { b.classList.add('text-gray-400'); b.classList.remove('active'); }); 
+            document.getElementById('tab-' + id).classList.add('active'); 
+            el.classList.add('active'); el.classList.remove('text-gray-400'); 
+        }
+
+        window.onload = carregarDadosDaPlanilha;
+    </script>
+</body>
 </html>
+
