@@ -11,8 +11,6 @@
         .tab-content.active { display: block; }
         .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
         .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
-        .item-detalhe { animation: slideDown 0.3s ease-out; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         #toast {
             visibility: hidden; min-width: 250px; background-color: #059669; color: #fff;
             text-align: center; border-radius: 12px; padding: 16px; position: fixed;
@@ -35,8 +33,7 @@
                 <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-basket"></i> EconomizaLocal</h1>
                 <button onclick="carregarDadosDaPlanilha()" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
             </div>
-            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic">
-                </div>
+            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic"></div>
             <div class="relative">
                 <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." 
                     class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
@@ -84,50 +81,39 @@
         const URL_PLANILHA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv';
 
         let produtos = [];
-        // LISTA DOS 9 MERCADOS
         const mercados = [
             { id: 'M1', nome: "Copagril" }, { id: 'M2', nome: "Waimman" }, { id: 'M3', nome: "Rimava" },
             { id: 'M4', nome: "Allmayer" }, { id: 'M5', nome: "Gatti" }, { id: 'M6', nome: "Moisés" },
             { id: 'M7', nome: "Círculo" }, { id: 'M8', nome: "Rondon" }, { id: 'M9', nome: "Eco" }
         ];
         let minhaLista = [];
-        let mercadoAtualId = null;
 
         async function carregarDadosDaPlanilha() {
             try {
-                // Adiciona um parâmetro de tempo para evitar cache do navegador
                 const resposta = await fetch(URL_PLANILHA + '&t=' + new Date().getTime());
                 const texto = await resposta.text();
                 const linhas = texto.split(/\r?\n/);
-                
-                // Pega a data de atualização na Coluna O (índice 14)
                 const cabecalho = linhas[0].split(/[,;]/);
                 document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[14] || 'Hoje'}`;
 
                 produtos = linhas.slice(1).map(linha => {
                     const col = linha.split(/[,;]/);
                     if (col.length < 12 || !col[0]) return null;
-                    
                     let p = {
                         id: parseInt(col[0]),
                         nome: col[1],
                         marca: col[2],
                         promo: col[12] ? col[12].trim().toUpperCase() === 'TRUE' : false
                     };
-
-                    // Preenche os preços de M1 a M9 dinamicamente
                     mercados.forEach((m, i) => {
                         p[`preco${m.id}`] = parseFloat((col[3 + i] || "0").replace(',', '.'));
                     });
-                    
                     return p;
                 }).filter(item => item !== null);
 
                 filtrarProdutos();
                 renderizarMercados();
-            } catch (erro) {
-                console.error("Erro:", erro);
-            }
+            } catch (erro) { console.error("Erro:", erro); }
         }
 
         function renderizarHome(listaParaExibir, isBusca) {
@@ -145,7 +131,7 @@
                     promoCont.innerHTML += `
                         <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
                             <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
-                            <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal.nome}</p>
+                            <p class="text-[10px] text-cyan-500 font-black uppercase mt-1">${mIdeal.nome}</p>
                             <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
                         </div>`;
                 });
@@ -158,37 +144,20 @@
                 const qtd = itemNaLista ? itemNaLista.quantidade : 0;
                 const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
                 const minP = Math.min(...precosValidos);
+                const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
 
-                if(isBusca) {
-                    // Visão detalhada na busca (compara todos)
-                    geralCont.innerHTML += `
-                        <div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
-                            <div class="flex justify-between items-start mb-3">
-                                <div><h4 class="font-black text-gray-800 text-sm uppercase">${p.nome}</h4><p class="text-[10px] text-gray-400">${p.marca}</p></div>
-                                ${renderSeletorQtd(p.id, qtd)}
+                geralCont.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-bold text-gray-800 uppercase leading-tight">${p.nome}</h4>
+                            <p class="text-[10px] text-gray-400 mb-1">${p.marca}</p>
+                            <div class="flex flex-col">
+                                <span class="text-[11px] text-cyan-500 font-black uppercase tracking-wider">${mIdeal.nome}</span>
+                                <span class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</span>
                             </div>
-                            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-dashed">
-                                ${mercados.map(m => {
-                                    const v = p[`preco${m.id}`];
-                                    return `<div class="text-center p-1 rounded ${v === minP ? 'bg-green-50' : 'bg-gray-50'}">
-                                        <p class="text-[7px] uppercase font-bold text-gray-400">${m.nome}</p>
-                                        <p class="text-[10px] font-black ${v === minP ? 'text-green-600' : 'text-gray-600'}">R$ ${v.toFixed(2)}</p>
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                        </div>`;
-                } else {
-                    // Visão resumida na home
-                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
-                    geralCont.innerHTML += `
-                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
-                            <div class="flex-1">
-                                <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
-                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
-                            </div>
-                            ${renderSeletorQtd(p.id, qtd)}
-                        </div>`;
-                }
+                        </div>
+                        ${renderSeletorQtd(p.id, qtd)}
+                    </div>`;
             });
         }
 
@@ -235,12 +204,10 @@
             const btnLimpar = document.getElementById('btn-limpar-container');
             if(minhaLista.length === 0) { cont.innerHTML = ''; vazio.classList.remove('hidden'); btnLimpar.classList.add('hidden'); return; }
             vazio.classList.add('hidden'); btnLimpar.classList.remove('hidden');
-            
             cont.innerHTML = mercados.map(m => {
                 const totalM = minhaLista.reduce((acc, p) => acc + (p[`preco${m.id}`] * p.quantidade), 0);
-                return `
-                <div class="bg-white rounded-2xl shadow-sm border p-4 flex justify-between items-center">
-                    <div><h3 class="font-bold text-gray-800 text-sm">${m.nome}</h3><p class="text-[10px] text-gray-400">${minhaLista.length} itens na lista</p></div>
+                return `<div class="bg-white rounded-2xl shadow-sm border p-4 flex justify-between items-center">
+                    <div><h3 class="font-bold text-gray-800 text-sm">${m.nome}</h3><p class="text-[10px] text-gray-400">${minhaLista.length} itens</p></div>
                     <div class="text-right"><p class="text-lg font-black text-blue-600">R$ ${totalM.toFixed(2)}</p></div>
                 </div>`;
             }).join('');
@@ -249,7 +216,7 @@
         function renderizarMercados() { 
             const cont = document.getElementById('lista-mercados'); 
             cont.innerHTML = mercados.map(m => `
-                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm active:bg-slate-50">
+                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm active:bg-slate-50 transition">
                     <span class="font-bold text-gray-700">${m.nome}</span>
                     <i class="fas fa-chevron-right text-gray-200"></i>
                 </div>`).join(''); 
