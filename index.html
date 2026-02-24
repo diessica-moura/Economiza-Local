@@ -45,7 +45,7 @@
                 <i class="fas fa-shopping-basket text-white text-4xl"></i>
             </div>
             <h2 class="text-3xl font-black text-gray-800 mb-2">EconomizaLocal</h2>
-            <p class="text-gray-500 text-sm mb-10">Economize tempo e dinheiro.</p>
+            <p class="text-gray-500 text-sm mb-10">Economize tempo e dinheiro comparando preços em Marechal Cândido Rondon.</p>
             
             <button onclick="entrarNoApp()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform uppercase tracking-wider">
                 Entrar no App
@@ -107,7 +107,17 @@
             <button onclick="showTab('carrinho', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-shopping-bag text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Minha Lista</span></button>
         </nav>
     </div>
-
+    
+<script>
+        // FUNÇÃO PARA ENTRAR NO APP
+        function entrarNoApp() {
+            const overlay = document.getElementById('welcome-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        }
+    
     <script>
         const URL_PLANILHA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv';
 
