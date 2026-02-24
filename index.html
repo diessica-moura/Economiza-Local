@@ -7,16 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* CSS DA TELA DE BOAS-VINDAS */
-        #welcome-overlay {
+        /* Estilos da Tela de Boas-Vindas */
+        #welcome-screen {
             position: fixed;
             inset: 0;
-            background: white;
+            background: #1d4ed8; /* blue-700 */
             z-index: 9999;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.5s ease;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+            color: white;
+            text-align: center;
+            padding: 20px;
         }
 
         .tab-content { display: none; }
@@ -39,20 +43,16 @@
 </head>
 <body class="bg-slate-50 font-sans">
 
-    <div id="welcome-overlay">
-        <div class="w-full max-w-xs p-8 text-center">
-            <div class="bg-blue-600 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-100">
-                <i class="fas fa-shopping-basket text-white text-4xl"></i>
-            </div>
-            <h2 class="text-3xl font-black text-gray-800 mb-2">EconomizaLocal</h2>
-            <p class="text-gray-500 text-sm mb-10">Economize tempo e dinheiro.</p>
-            
-            <button onclick="entrarNoApp()" class="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-transform uppercase tracking-wider">
-                Entrar no App
-            </button>
-            
-            <p class="mt-12 text-[10px] text-gray-400 uppercase tracking-widest font-bold">Oficial &copy; 2026</p>
+    <div id="welcome-screen">
+        <div class="mb-6 bg-white p-6 rounded-full shadow-2xl">
+            <i class="fas fa-shopping-basket text-blue-700 text-6xl"></i>
         </div>
+        <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços dos supermercados de Marechal Cândido Rondon em um só lugar.</p>
+        <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
+            Começar a Economizar
+        </button>
+        <p class="absolute bottom-10 text-[10px] text-blue-300 uppercase font-bold tracking-widest">Versão Oficial 2026</p>
     </div>
 
     <div id="app-content">
@@ -107,22 +107,20 @@
             <button onclick="showTab('carrinho', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-shopping-bag text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Minha Lista</span></button>
         </nav>
     </div>
-    
-<script>
-        // FUNÇÃO PARA ENTRAR NO APP
-        function entrarNoApp() {
-            const overlay = document.getElementById('welcome-overlay');
-            overlay.style.opacity = '0';
+
+    <script>
+        // Função para fechar a tela de boas-vindas
+        function iniciarApp() {
+            const screen = document.getElementById('welcome-screen');
+            screen.style.opacity = '0';
             setTimeout(() => {
-                overlay.style.display = 'none';
+                screen.style.visibility = 'hidden';
             }, 500);
         }
-    
-    <script>
+
         const URL_PLANILHA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv';
 
         let produtos = [];
-        // LISTA DOS 9 MERCADOS
         const mercados = [
             { id: 'M1', nome: "Copagril" }, { id: 'M2', nome: "Waimman" }, { id: 'M3', nome: "Rimava" },
             { id: 'M4', nome: "Allmayer" }, { id: 'M5', nome: "Gatti" }, { id: 'M6', nome: "Moisés" },
@@ -133,31 +131,24 @@
 
         async function carregarDadosDaPlanilha() {
             try {
-                // Adiciona um parâmetro de tempo para evitar cache do navegador
                 const resposta = await fetch(URL_PLANILHA + '&t=' + new Date().getTime());
                 const texto = await resposta.text();
                 const linhas = texto.split(/\r?\n/);
-                
-                // Pega a data de atualização na Coluna O (índice 14)
                 const cabecalho = linhas[0].split(/[,;]/);
                 document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[14] || 'Hoje'}`;
 
                 produtos = linhas.slice(1).map(linha => {
                     const col = linha.split(/[,;]/);
                     if (col.length < 12 || !col[0]) return null;
-                    
                     let p = {
                         id: parseInt(col[0]),
                         nome: col[1],
                         marca: col[2],
                         promo: col[12] ? col[12].trim().toUpperCase() === 'TRUE' : false
                     };
-
-                    // Preenche os preços de M1 a M9 dinamicamente
                     mercados.forEach((m, i) => {
                         p[`preco${m.id}`] = parseFloat((col[3 + i] || "0").replace(',', '.'));
                     });
-                    
                     return p;
                 }).filter(item => item !== null);
 
@@ -198,7 +189,6 @@
                 const minP = Math.min(...precosValidos);
 
                 if(isBusca) {
-                    // Visão detalhada na busca (compara todos)
                     geralCont.innerHTML += `
                         <div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
                             <div class="flex justify-between items-start mb-3">
@@ -216,7 +206,6 @@
                             </div>
                         </div>`;
                 } else {
-                    // Visão resumida na home
                     const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
                     geralCont.innerHTML += `
                         <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
