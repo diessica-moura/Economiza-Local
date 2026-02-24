@@ -8,25 +8,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         #welcome-screen {
-            position: fixed;
-            inset: 0;
-            background: #1d4ed8;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s ease-out, visibility 0.5s;
-            color: white;
-            text-align: center;
-            padding: 20px;
+            position: fixed; inset: 0; background: #1d4ed8; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s; color: white; text-align: center; padding: 20px;
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
         .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
-        .item-detalhe { animation: slideDown 0.3s ease-out; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         #toast {
             visibility: hidden; min-width: 250px; background-color: #059669; color: #fff;
             text-align: center; border-radius: 12px; padding: 16px; position: fixed;
@@ -36,6 +25,7 @@
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
         @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         ::-webkit-scrollbar { display: none; }
         .detalhe-itens-carrinho { display: none; }
         .detalhe-itens-carrinho.aberto { display: block; animation: slideDown 0.2s ease-out; }
@@ -48,11 +38,10 @@
             <i class="fas fa-shopping-basket text-blue-700 text-6xl"></i>
         </div>
         <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
-        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços dos supermercados de Marechal Cândido Rondon em um só lugar.</p>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços de Marechal Cândido Rondon.</p>
         <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
             Começar a Economizar
         </button>
-        <p class="absolute bottom-10 text-[10px] text-blue-300 uppercase font-bold tracking-widest">Versão Oficial 2026</p>
     </div>
 
     <div id="app-content">
@@ -118,9 +107,9 @@
 
         let produtos = [];
         const mercados = [
-            { id: 'M1', nome: "Copagril" }, { id: 'M2', nome: "Waimann" }, { id: 'M3', nome: "Dilettare" },
-            { id: 'M4', nome: "Allmayer" }, { id: 'M5', nome: "Super Cercar" }, { id: 'M6', nome: "Max Atacadista" },
-            { id: 'M7', nome: "Portuga" }, { id: 'M8', nome: "Wink" }, { id: 'M9', nome: "Super Favorito" }
+            { id: 'M1', nome: "Copagril" }, { id: 'M2', nome: "Waimman" }, { id: 'M3', nome: "Rimava" },
+            { id: 'M4', nome: "Allmayer" }, { id: 'M5', nome: "Gatti" }, { id: 'M6', nome: "Moisés" },
+            { id: 'M7', nome: "Círculo" }, { id: 'M8', nome: "Rondon" }, { id: 'M9', nome: "Eco" }
         ];
         let minhaLista = [];
         let mercadoAtualId = null;
@@ -131,17 +120,23 @@
                 const texto = await resposta.text();
                 const linhas = texto.split(/\r?\n/);
                 const cabecalho = linhas[0].split(/[,;]/);
-                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[14] || 'Hoje'}`;
+                
+                // Pega a data que está na última coluna (índice 13)
+                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${cabecalho[13] || 'Hoje'}`;
 
                 produtos = linhas.slice(1).map(linha => {
                     const col = linha.split(/[,;]/);
-                    if (col.length < 12 || !col[0]) return null;
+                    if (col.length < 13 || !col[0]) return null;
+                    
                     let p = {
-                        id: parseInt(col[0]),
-                        nome: col[1],
+                        id: parseInt(col[0]), 
+                        nome: col[1], 
                         marca: col[2],
-                        promo: col[12] ? col[12].trim().toUpperCase() === 'PROMOCAO' : NORMAL
+                        // Promoção está no índice 12 (coluna 13)
+                        promo: col[12] ? col[12].trim().toUpperCase() === 'TRUE' : false
                     };
+                    
+                    // Mapeia os preços (precoM1 começa no índice 3)
                     mercados.forEach((m, i) => {
                         p[`preco${m.id}`] = parseFloat((col[3 + i] || "0").replace(',', '.'));
                     });
@@ -158,29 +153,38 @@
             const promoCont = document.getElementById('promo-container');
             geralCont.innerHTML = '';
             
+            // Renderiza o Carrossel de Promoções
             if(!isBusca) {
                 document.getElementById('secao-promocoes').classList.remove('hidden');
                 promoCont.innerHTML = '';
-                produtos.filter(p => p.promo).forEach(p => {
-                    const precos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
-                    const minP = Math.min(...precos);
-                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
-                    promoCont.innerHTML += `
-                        <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
-                            <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
-                            <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal.nome}</p>
-                            <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
-                        </div>`;
-                });
+                const promocionais = produtos.filter(p => p.promo);
+                
+                if(promocionais.length === 0) {
+                    promoCont.innerHTML = '<p class="text-gray-400 text-[10px]">Nenhuma oferta em destaque hoje.</p>';
+                } else {
+                    promocionais.forEach(p => {
+                        const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
+                        const minP = Math.min(...precosValidos);
+                        const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
+                        promoCont.innerHTML += `
+                            <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
+                                <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
+                                <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal ? mIdeal.nome : 'Oferta'}</p>
+                                <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
+                            </div>`;
+                    });
+                }
             } else {
                 document.getElementById('secao-promocoes').classList.add('hidden');
             }
 
+            // Renderiza a Lista Geral
             listaParaExibir.forEach(p => {
                 const itemNaLista = minhaLista.find(item => item.id === p.id);
                 const qtd = itemNaLista ? itemNaLista.quantidade : 0;
                 const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
                 const minP = Math.min(...precosValidos);
+                const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
 
                 if(isBusca) {
                     geralCont.innerHTML += `
@@ -200,12 +204,11 @@
                             </div>
                         </div>`;
                 } else {
-                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
                     geralCont.innerHTML += `
                         <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
                             <div class="flex-1">
                                 <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
-                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
+                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal ? mIdeal.nome : 'N/A'}</p>
                             </div>
                             ${renderSeletorQtd(p.id, qtd)}
                         </div>`;
@@ -255,9 +258,11 @@
         function toggleItensCarrinho(idMercado) {
             const div = document.getElementById('detalhe-itens-' + idMercado);
             const icon = document.getElementById('icon-arrow-' + idMercado);
-            div.classList.toggle('aberto');
-            icon.classList.toggle('fa-chevron-down');
-            icon.classList.toggle('fa-chevron-up');
+            if(div) div.classList.toggle('aberto');
+            if(icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
         }
 
         function renderizarCarrinho() {
@@ -269,9 +274,8 @@
             
             cont.innerHTML = mercados.map(m => {
                 const totalM = minhaLista.reduce((acc, p) => acc + (p[`preco${m.id}`] * p.quantidade), 0);
-                
                 const listaItensHtml = minhaLista.map(p => `
-                    <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                    <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                         <span class="text-[11px] text-gray-600">${p.quantidade}x ${p.nome} <span class="font-bold">(${p.marca})</span></span>
                         <span class="text-[11px] font-bold text-gray-800">R$ ${(p[`preco${m.id}`] * p.quantidade).toFixed(2)}</span>
                     </div>
