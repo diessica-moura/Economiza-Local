@@ -6,57 +6,57 @@
     <title>EconomizaLocal - Oficial</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
-        .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
         #toast {
             visibility: hidden; min-width: 250px; background-color: #059669; color: #fff;
             text-align: center; border-radius: 12px; padding: 16px; position: fixed;
             z-index: 100; left: 50%; transform: translateX(-50%); top: 30px; font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
         @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+        
+        /* Modal de Login */
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.95);
+            z-index: 999; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+        }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans">
 
-    <div id="login-screen" class="fixed inset-0 bg-blue-700 z-[100] flex flex-col items-center justify-center p-6 text-white transition-all duration-500">
-        <div class="w-full max-w-md space-y-8 text-center">
-            <div class="mb-8">
-                <i class="fas fa-shopping-basket text-6xl text-green-400 mb-4"></i>
-                <h2 class="text-3xl font-bold italic">EconomizaLocal</h2>
-                <p class="text-blue-100 text-sm">Entre com seu celular para continuar</p>
+    <div id="login-overlay">
+        <div class="w-full max-w-xs p-8 text-center">
+            <div class="bg-blue-600 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200">
+                <i class="fas fa-shopping-basket text-white text-3xl"></i>
             </div>
-
-            <div class="bg-white p-6 rounded-3xl shadow-2xl space-y-4">
-                <div id="etapa-numero">
+            <h2 class="text-2xl font-black text-gray-800 mb-2">Bem-vindo!</h2>
+            <p class="text-gray-500 text-sm mb-8">Identifique-se para ver as ofertas da sua região.</p>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <i class="fas fa-phone-alt absolute left-4 top-4 text-gray-400"></i>
                     <input type="tel" id="login-telefone" placeholder="(00) 00000-0000" 
-                        class="w-full p-4 rounded-xl text-gray-800 bg-slate-100 outline-none border-2 focus:border-green-400 text-center text-xl font-bold">
-                    <div id="recaptcha-container" class="mt-4"></div>
-                    <button onclick="enviarCodigoSMS()" class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition shadow-lg">
-                        RECEBER CÓDIGO SMS
-                    </button>
+                        class="w-full p-4 pl-12 bg-white border-2 border-slate-100 rounded-2xl outline-none focus:border-blue-500 transition-all font-bold">
                 </div>
-
-                <div id="etapa-codigo" class="hidden">
-                    <input type="number" id="codigo-sms" placeholder="000000" 
-                        class="w-full p-4 rounded-xl text-gray-800 bg-slate-100 outline-none border-2 focus:border-blue-400 text-center text-2xl tracking-widest font-bold">
-                    <button onclick="confirmarCodigo()" class="w-full mt-4 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg">
-                        CONFIRMAR E ENTRAR
-                    </button>
-                </div>
+                <button onclick="realizarLogin()" class="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+                    Acessar Preços
+                </button>
             </div>
+            <p class="mt-8 text-[10px] text-gray-400 uppercase tracking-widest font-bold">EconomizaLocal &copy; 2026</p>
         </div>
     </div>
 
-    <div id="app-content" class="hidden opacity-0 transition-opacity duration-700">
-
-    <div id="app-content">
+    <div id="app-content" class="hidden">
         <div id="toast">LISTA ATUALIZADA</div>
         
         <header class="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
@@ -64,12 +64,6 @@
                 <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-basket"></i> EconomizaLocal</h1>
                 <button onclick="carregarDadosDaPlanilha()" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
             </div>
-            
-            <div class="mb-3">
-                <input type="text" id="login-telefone" placeholder="Digite seu telefone (00) 00000-0000" 
-                    class="w-full p-2 rounded-lg text-gray-800 text-xs outline-none border-none">
-            </div>
-
             <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic"></div>
             <div class="relative">
                 <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="O que você procura hoje?" 
@@ -125,7 +119,6 @@
             appId: "1:404884645763:web:d001535363531d7563b8b6",
             measurementId: "G-GLV4MM003Q"
         };
-        // Inicializa o Firebase
         firebase.initializeApp(firebaseConfig);
 
         // --- MÁSCARA DE TELEFONE ---
@@ -133,6 +126,19 @@
             let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
             e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
         });
+
+        // --- FUNÇÃO DE LOGIN ---
+        function realizarLogin() {
+            const tel = document.getElementById('login-telefone').value;
+            if (tel.length < 14) {
+                alert("Por favor, insira um telefone válido.");
+                return;
+            }
+            // Simulação de sucesso ou integração com Firebase Auth se desejar
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('app-content').classList.remove('hidden');
+            carregarDadosDaPlanilha();
+        }
 
         // --- LÓGICA DO APP ---
         const URL_PLANILHA = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv';
@@ -173,7 +179,6 @@
             } catch (erro) { console.error("Erro:", erro); }
         }
 
-        // ... (resto das suas funções como renderizarHome, adicionarLista, etc., permanecem iguais)
         function renderizarHome(listaParaExibir, isBusca) {
             const geralCont = document.getElementById('comparativo-geral');
             const promoCont = document.getElementById('promo-container');
@@ -187,7 +192,7 @@
                     const minP = Math.min(...precos);
                     const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
                     promoCont.innerHTML += `
-                        <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
+                        <div class="bg-gradient-to-br from-blue-50 to-green-50 min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
                             <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
                             <span class="inline-block bg-cyan-100 text-cyan-800 text-[9px] px-2 py-0.5 rounded-full font-black uppercase mb-1">${mIdeal.nome}</span>
                             <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
@@ -311,7 +316,9 @@
             document.getElementById('tab-' + id).classList.add('active'); 
             el.classList.add('active'); el.classList.remove('text-gray-400'); 
         }
-
+    </script>
+</body>
+</html>
         window.onload = carregarDadosDaPlanilha;
     </script>
 </body>
