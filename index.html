@@ -370,7 +370,27 @@
             document.getElementById('tab-' + id).classList.add('active'); 
             el.classList.add('active'); el.classList.remove('text-gray-400'); 
         }
+  {/* Tab: Carrinho */}
+        {activeTab === "carrinho" && (
+          <ShoppingList
+            mercados={MERCADOS}
+            listaItems={minhaLista}
+            onClear={limparLista}
+            onRemoveItem={removerItem}
+          />
+        )}
+      </main>
 
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          if (tab !== "mercados") setSelectedMarketId(null);
+        }}
+        cartCount={minhaLista.length}
+      />
+    </div>
+        
         window.onload = carregarDadosDaPlanilha;
     </script>
 </body>
