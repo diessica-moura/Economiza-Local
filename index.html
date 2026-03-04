@@ -36,7 +36,7 @@
             <i class="fas fa-shopping-basket text-blue-700 text-6xl"></i>
         </div>
         <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
-        <p class="text-blue-100 mb-10 max-w-xs text-sm">Preços de Marechal Cândido Rondon em um só lugar.</p>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços de Marechal Cândido Rondon em um só lugar.</p>
         <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
             Começar a Economizar
         </button>
@@ -95,24 +95,23 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURAÇÃO (Troque LINK_AQUI pelo seu link CSV do Google) ---
         const mercados = [
-            { id: 'M1', nome: "Copagril", url: 'LINK_AQUI' },
-            { id: 'M2', nome: "Waimann", url: 'LINK_AQUI' },
-            { id: 'M3', nome: "Dilettare", url: 'LINK_AQUI' },
-            { id: 'M4', nome: "Allmayer", url: 'LINK_AQUI' },
-            { id: 'M5', nome: "Super Cercar", url: 'LINK_AQUI' },
-            { id: 'M6', nome: "Max Atacadista", url: 'LINK_AQUI' },
-            { id: 'M7', nome: "Portuga", url: 'LINK_AQUI' },
-            { id: 'M8', nome: "Wink", url: 'LINK_AQUI' },
-            { id: 'M9', nome: "Super Favorito", url: 'LINK_AQUI' }
+            { id: 'M1', nome: "Copagril", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRZR9LPUdow0IRmU5_gW8OGjVK_Faj2svOND_t24Swl-iGCl5fVIM1T8aITDtwKQVIH99cVlCacl0Qb/pub?output=csv },
+            { id: 'M2', nome: "Waimann", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRFacFVwUWZH05G-eW5rv7ulXrWG2JzbTU8Je30SM5w_1ATc6hZUcXH2kSZHvpHT6GZc4k4gvPkXHqE/pubhtml },
+            { id: 'M3', nome: "Dilettare", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRyfBLLoi1FHBxGFjQ6IfCCtSJWkVWU-F1q8XBf3DyaYvaLYCigCprhXpUbD6n78iVynFRfN3uRq7pE/pub?output=csv },
+            { id: 'M4', nome: "Allmayer", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vSZyyTZ_BEpICvBTjP1updcWvGjmutPITHB8YerfSVwlMn1AK43YQB0w2G_zeoLKauZWakt1_dcdrYC/pub?output=csv },
+            { id: 'M5', nome: "Super Cercar", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vQjKk7LVFzBJ-fMEcafo6OLeIGpGQ4NuX5e8dgn526woGPBeIRG4CAFMExlgqwhQm7YR6lkM_INFsAQ/pub?output=csv },
+            { id: 'M6', nome: "Max Atacadista", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vSqNCBlxAPIvnt8DJsRunDVYbc6FsUt7HYNegjXa-KQhiYwnJJxdJiwdvY37hwSGMPjHavQ8VJyf9_E/pub?output=csv },
+            { id: 'M7', nome: "Portuga", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_crfv1VifyqpsfLjn90YUlm978uZy2CDPFpR0zxUEvZbvn71r-oWMylGqEIpGXusg8lyChqQ27kv/pub?output=csv },
+            { id: 'M8', nome: "Wink", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vTYVeL5I7AzIIcNkTytBhGbIbNE46sUw-nnvXEx9usAUT-xMre4IY7E-Fz0jcM7og_otXHWKk8nlIE1/pub?output=csv },
+            { id: 'M9', nome: "Super Favorito", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vTKfkjZ9_Opghojp_3ftEZpKd-q6DXNomEeJ46f8aQnzXAv5LhPtWjjz_5ryLxUHI3eU2SpskBp3Y3s/pub?output=csv }
         ];
 
         let produtos = [];
         let minhaLista = [];
         let mercadoAtualId = null;
 
-        // --- 2. INICIALIZAÇÃO ---
+       
         function iniciarApp() {
             document.getElementById('welcome-screen').style.display = 'none';
         }
@@ -122,7 +121,7 @@
             let carregouAlgum = false;
 
             for (const m of mercados) {
-                // Só tenta baixar se o link parecer válido
+            
                 if (!m.url || m.url.length < 20) continue;
 
                 try {
@@ -140,7 +139,7 @@
                                 id: id,
                                 nome: cols[1].trim(),
                                 marca: cols[2].trim(),
-                                promo: cols[4] ? cols[4].toUpperCase().includes('PROMO') : false
+                                promo: cols[4] ? cols[4].toUpperCase().includes('PROMOCAO') : false
                             };
                             mercados.forEach(mer => mapaProdutos[id][`preco${mer.id}`] = 0);
                         }
@@ -161,7 +160,7 @@
             renderizarMercados();
         }
 
-        // --- 3. LÓGICA DE INTERFACE ---
+       
         function filtrarProdutos() {
             const termo = document.getElementById('mainSearch').value.toLowerCase();
             const filtrados = produtos.filter(p => 
