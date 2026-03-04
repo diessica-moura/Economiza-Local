@@ -36,7 +36,7 @@
             <i class="fas fa-shopping-basket text-blue-700 text-6xl"></i>
         </div>
         <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
-        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços de Marechal Cândido Rondon em um só lugar.</p>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Preços de Marechal Cândido Rondon em um só lugar.</p>
         <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
             Começar a Economizar
         </button>
@@ -96,7 +96,7 @@
 
     <script>
         const mercados = [
-            { id: 'M1', nome: "Copagril", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRZR9LPUdow0IRmU5_gW8OGjVK_Faj2svOND_t24Swl-iGCl5fVIM1T8aITDtwKQVIH99cVlCacl0Qb/pub?output=csv },
+             { id: 'M1', nome: "Copagril", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRZR9LPUdow0IRmU5_gW8OGjVK_Faj2svOND_t24Swl-iGCl5fVIM1T8aITDtwKQVIH99cVlCacl0Qb/pub?output=csv },
             { id: 'M2', nome: "Waimann", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRFacFVwUWZH05G-eW5rv7ulXrWG2JzbTU8Je30SM5w_1ATc6hZUcXH2kSZHvpHT6GZc4k4gvPkXHqE/pubhtml },
             { id: 'M3', nome: "Dilettare", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vRyfBLLoi1FHBxGFjQ6IfCCtSJWkVWU-F1q8XBf3DyaYvaLYCigCprhXpUbD6n78iVynFRfN3uRq7pE/pub?output=csv },
             { id: 'M4', nome: "Allmayer", url: https://docs.google.com/spreadsheets/d/e/2PACX-1vSZyyTZ_BEpICvBTjP1updcWvGjmutPITHB8YerfSVwlMn1AK43YQB0w2G_zeoLKauZWakt1_dcdrYC/pub?output=csv },
@@ -111,7 +111,7 @@
         let minhaLista = [];
         let mercadoAtualId = null;
 
-       
+        // --- 2. INICIALIZAÇÃO ---
         function iniciarApp() {
             document.getElementById('welcome-screen').style.display = 'none';
         }
@@ -121,7 +121,7 @@
             let carregouAlgum = false;
 
             for (const m of mercados) {
-            
+                // Só tenta baixar se o link parecer válido
                 if (!m.url || m.url.length < 20) continue;
 
                 try {
@@ -139,7 +139,7 @@
                                 id: id,
                                 nome: cols[1].trim(),
                                 marca: cols[2].trim(),
-                                promo: cols[4] ? cols[4].toUpperCase().includes('PROMOCAO') : false
+                                promo: cols[4] ? cols[4].toUpperCase().includes('PROMO') : false
                             };
                             mercados.forEach(mer => mapaProdutos[id][`preco${mer.id}`] = 0);
                         }
@@ -160,7 +160,7 @@
             renderizarMercados();
         }
 
-       
+        // --- 3. LÓGICA DE INTERFACE ---
         function filtrarProdutos() {
             const termo = document.getElementById('mainSearch').value.toLowerCase();
             const filtrados = produtos.filter(p => 
