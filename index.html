@@ -61,11 +61,13 @@
         <header class="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
             <div class="flex justify-between items-center mb-1">
                 <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-basket"></i> EconomizaLocal</h1>
-                <button onclick="carregarDadosDaPlanilha()" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
+                <button onclick="carregarDadosDaPlanilha()" aria-label="Atualizar preços" title="Atualizar preços" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
             </div>
-            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic"></div>
+            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando preços...
+                </div>
             <div class="relative">
-                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." 
+                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." aria-label="Pesquisar produtos" autocomplete="off" 
                     class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
             </div>
@@ -196,6 +198,9 @@
         }
 
         async function carregarDadosDaPlanilha() {
+            const dataContainer = document.getElementById('container-data');
+            dataContainer.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Atualizando preços...`;
+
             try {
                 const mapaProdutos = {};
 
@@ -204,9 +209,11 @@
 
                     try {
                         const resposta = await fetch(m.url + '&t=' + new Date().getTime());
+                        if (!resposta.ok) throw new Error(`Falha HTTP ${resposta.status}`);
+
                         const texto = await resposta.text();
                         const linhas = texto.split(/\r?\n/).filter(Boolean);
-                        if (linhas.length < 2) return;
+                        if (linhas.length < 2) continue;
 
                         const cabecalho = linhas[0];
                         const separador = contarSeparadoresForaDeAspas(cabecalho, ';') >= contarSeparadoresForaDeAspas(cabecalho, ',') ? ';' : ',';
@@ -236,12 +243,13 @@
 
                 produtos = Object.values(mapaProdutos);
                 sincronizarListaComProdutos();
-                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleDateString()}`;
+                dataContainer.innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleDateString()} às ${new Date().toLocaleTimeString()}`;
                 
                 filtrarProdutos();
                 renderizarMercados();
                 renderizarCarrinho();
             } catch (erro) { 
+                dataContainer.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Erro ao atualizar preços`;
                 console.error("Erro Geral:", erro); 
             }
         }
