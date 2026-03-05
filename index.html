@@ -1,108 +1,221 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/index.html b/index.html
-index 4a77c1bcc1e1d6f68450dac2899f43a9fb979d19..ef182a347995a6da1e5c45d8c710212611cd8331 100644
---- a/index.html
-+++ b/index.html
-@@ -1,30 +1,33 @@
- <!DOCTYPE html>
- <html lang="pt-br">
- <head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-+    <meta http-equiv="Pragma" content="no-cache">
-+    <meta http-equiv="Expires" content="0">
-     <title>EconomizaLocal - Oficial</title>
-     <script src="https://cdn.tailwindcss.com"></script>
-     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-     <style>
-         #welcome-screen {
-             position: fixed;
-             inset: 0;
-             background: #1d4ed8;
-             z-index: 9999;
-             display: flex;
-             flex-direction: column;
-             align-items: center;
-             justify-content: center;
-             transition: opacity 0.5s ease-out, visibility 0.5s;
-             color: white;
-             text-align: center;
-             padding: 20px;
-         }
-         .tab-content { display: none; }
-         .tab-content.active { display: block; }
-         .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
-         .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
-         .item-detalhe { animation: slideDown 0.3s ease-out; }
-         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-         #toast {
-@@ -131,63 +134,63 @@
-         let mercadoAtualId = null;
- 
-         async function carregarDadosDaPlanilha() {
-             try {
-                 const mapaProdutos = {};
- 
-                 for (const m of mercados) {
-                     if(!m.url || m.url.includes('https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv')) continue;
- 
-                     try {
-                         const resposta = await fetch(m.url + '&t=' + new Date().getTime());
-                         const texto = await resposta.text();
-                         const linhas = texto.split(/\r?\n/).slice(1);
- 
-                         linhas.forEach(linha => {
-                             const col = linha.split(/[,;]/);
-                             if (col.length < 4 || !col[0]) return;
- 
-                             const idProd = col[0].trim();
-                             
-                             if (!mapaProdutos[idProd]) {
-                                 mapaProdutos[idProd] = {
-                                     id: parseInt(idProd),
-                                     nome: col[1],
-                                     marca: col[2],
--                                    promo: col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : FALSE
-+                                    promo: col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false
-                                 };
-                                 mercados.forEach(merc => mapaProdutos[idProd][`preco${merc.id}`] = 0);
-                             }
-                             mapaProdutos[idProd][`preco${m.id}`] = parseFloat((col[3] || "0").replace(',', '.'));
-                         });
-                     } catch (e) {
-                         console.error(`Erro no mercado ${m.nome}:`, e);
-                     }
-                 }
- 
-                 produtos = Object.values(mapaProdutos);
--                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleDateString()}`;
-+                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleString('pt-BR')} · ${produtos.length} produtos`;
-                 
-                 filtrarProdutos();
-                 renderizarMercados();
-             } catch (erro) { 
-                 console.error("Erro Geral:", erro); 
-             }
-         }
- 
-         function renderizarHome(listaParaExibir, isBusca) {
-             const geralCont = document.getElementById('comparativo-geral');
-             const promoCont = document.getElementById('promo-container');
-             geralCont.innerHTML = '';
-             
-             if(!isBusca) {
-                 document.getElementById('secao-promocoes').classList.remove('hidden');
-                 promoCont.innerHTML = '';
-                 produtos.filter(p => p.promo).forEach(p => {
-                     const precos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
-                     if (precos.length === 0) return;
-                     const minP = Math.min(...precos);
-                     const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
-                     promoCont.innerHTML += `
-                         <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
-                             <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
-                             <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal.nome}</p>
- 
-EOF
-)
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>EconomizaLocal - Oficial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: #1d4ed8;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
+        .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
+        .item-detalhe { animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        #toast {
+@@ -104,91 +107,145 @@
+            <button onclick="showTab('melhor-preco', this)" class="nav-btn active flex flex-col items-center p-2 w-full"><i class="fas fa-award text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Melhor Preço</span></button>
+            <button onclick="showTab('mercados', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-store text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Mercados</span></button>
+            <button onclick="showTab('carrinho', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-shopping-bag text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Minha Lista</span></button>
+        </nav>
+    </div>
+
+    <script>
+        function iniciarApp() {
+            const screen = document.getElementById('welcome-screen');
+            screen.style.opacity = '0';
+            setTimeout(() => { screen.style.visibility = 'hidden'; }, 500);
+        }
+
+        const mercados = [
+            { id: 'M1', nome: "Copagril", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZR9LPUdow0IRmU5_gW8OGjVK_Faj2svOND_t24Swl-iGCl5fVIM1T8aITDtwKQVIH99cVlCacl0Qb/pub?output=csv' },
+            { id: 'M2', nome: "Waimann", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFacFVwUWZH05G-eW5rv7ulXrWG2JzbTU8Je30SM5w_1ATc6hZUcXH2kSZHvpHT6GZc4k4gvPkXHqE/pub?output=csv' },
+            { id: 'M3', nome: "Dilettare", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyfBLLoi1FHBxGFjQ6IfCCtSJWkVWU-F1q8XBf3DyaYvaLYCigCprhXpUbD6n78iVynFRfN3uRq7pE/pub?output=csv' },
+            { id: 'M4', nome: "Allmayer", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZyyTZ_BEpICvBTjP1updcWvGjmutPITHB8YerfSVwlMn1AK43YQB0w2G_zeoLKauZWakt1_dcdrYC/pub?output=csv' },
+            { id: 'M5', nome: "Super Cercar", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjKk7LVFzBJ-fMEcafo6OLeIGpGQ4NuX5e8dgn526woGPBeIRG4CAFMExlgqwhQm7YR6lkM_INFsAQ/pub?output=csv' },
+            { id: 'M6', nome: "Max Atacadista", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSqNCBlxAPIvnt8DJsRunDVYbc6FsUt7HYNegjXa-KQhiYwnJJxdJiwdvY37hwSGMPjHavQ8VJyf9_E/pub?output=csv' },
+            { id: 'M7', nome: "Portuga", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_crfv1VifyqpsfLjn90YUlm978uZy2CDPFpR0zxUEvZbvn71r-oWMylGqEIpGXusg8lyChqQ27kv/pub?output=csv' },
+            { id: 'M8', nome: "Wink", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYVeL5I7AzIIcNkTytBhGbIbNE46sUw-nnvXEx9usAUT-xMre4IY7E-Fz0jcM7og_otXHWKk8nlIE1/pub?output=csv' },
+            { id: 'M9', nome: "Super Favorito", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTKfkjZ9_Opghojp_3ftEZpKd-q6DXNomEeJ46f8aQnzXAv5LhPtWjjz_5ryLxUHI3eU2SpskBp3Y3s/pub?output=csv' }
+        ];
+
+        const APP_VERSION = '2026.03.04-2';
+        let produtos = [];
+        let minhaLista = [];
+        let mercadoAtualId = null;
+
+        function detectarDelimitador(linha) {
+            const semicolons = (linha.match(/;/g) || []).length;
+            const commas = (linha.match(/,/g) || []).length;
+            return semicolons > commas ? ';' : ',';
+        }
+
+        function parseLinhaCsv(linha, delimitador) {
+            const resultado = [];
+            let atual = '';
+            let emAspas = false;
+
+            for (let i = 0; i < linha.length; i++) {
+                const char = linha[i];
+                const prox = linha[i + 1];
+
+                if (char === '"') {
+                    if (emAspas && prox === '"') {
+                        atual += '"';
+                        i++;
+                    } else {
+                        emAspas = !emAspas;
+                    }
+                } else if (char === delimitador && !emAspas) {
+                    resultado.push(atual.trim());
+                    atual = '';
+                } else {
+                    atual += char;
+                }
+            }
+
+            resultado.push(atual.trim());
+            return resultado;
+        }
+
+        async function carregarDadosDaPlanilha() {
+            try {
+                const mapaProdutos = {};
+                const mercadosComFalha = [];
+                let mercadosProcessados = 0;
+
+                for (const m of mercados) {
+                    if(!m.url || m.url.includes('https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv')) continue;
+
+                    try {
+                        const resposta = await fetch(m.url + '&t=' + new Date().getTime());
+                        const resposta = await fetch(m.url + '&t=' + new Date().getTime(), { cache: 'no-store' });
+                        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+
+                        const texto = await resposta.text();
+                        const linhas = texto.split(/\r?\n/).slice(1);
+                        const linhas = texto.split(/\r?\n/).filter(Boolean);
+                        if (linhas.length <= 1) continue;
+
+                        linhas.forEach(linha => {
+                            const col = linha.split(/[,;]/);
+                        const delimitador = detectarDelimitador(linhas[0]);
+                        const linhasDados = linhas.slice(1);
+
+                        linhasDados.forEach(linha => {
+                            const col = parseLinhaCsv(linha, delimitador);
+                            if (col.length < 4 || !col[0]) return;
+
+                            const idProd = col[0].trim();
+                            
+                            if (!mapaProdutos[idProd]) {
+                                mapaProdutos[idProd] = {
+                                    id: parseInt(idProd),
+                                    nome: col[1],
+                                    marca: col[2],
+                                    promo: col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : FALSE
+                                    promo: col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false
+                                };
+                                mercados.forEach(merc => mapaProdutos[idProd][`preco${merc.id}`] = 0);
+                            }
+                            mapaProdutos[idProd][`preco${m.id}`] = parseFloat((col[3] || "0").replace(',', '.'));
+                            const preco = parseFloat((col[3] || '0').replace(',', '.'));
+                            mapaProdutos[idProd][`preco${m.id}`] = Number.isFinite(preco) ? preco : 0;
+                        });
+
+                        mercadosProcessados++;
+                    } catch (e) {
+                        mercadosComFalha.push(m.nome);
+                        console.error(`Erro no mercado ${m.nome}:`, e);
+                    }
+                }
+
+                produtos = Object.values(mapaProdutos);
+                document.getElementById('container-data').innerHTML = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleDateString()}`;
+                
+                const statusBase = `<i class="fas fa-clock"></i> Atualizado em: ${new Date().toLocaleString('pt-BR')} · ${produtos.length} produtos · ${mercadosProcessados}/${mercados.length} mercados`;
+                document.getElementById('container-data').innerHTML = mercadosComFalha.length
+                    ? `${statusBase} · Falha: ${mercadosComFalha.join(', ')}`
+                    : statusBase;
+
+                if (produtos.length === 0) {
+                    console.warn('Nenhum produto foi carregado. Verifique o formato da planilha e URLs.');
+                }
+
+                filtrarProdutos();
+                renderizarMercados();
+            } catch (erro) { 
+                console.error("Erro Geral:", erro); 
+            }
+        }
+
+        function renderizarHome(listaParaExibir, isBusca) {
+            const geralCont = document.getElementById('comparativo-geral');
+            const promoCont = document.getElementById('promo-container');
+            geralCont.innerHTML = '';
+            
+            if(!isBusca) {
+                document.getElementById('secao-promocoes').classList.remove('hidden');
+                promoCont.innerHTML = '';
+                produtos.filter(p => p.promo).forEach(p => {
+                    const precos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
+                    if (precos.length === 0) return;
+                    const minP = Math.min(...precos);
+                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
+                    promoCont.innerHTML += `
+                        <div class="promo-card min-w-[160px] p-3 rounded-2xl border border-blue-100 shadow-sm">
+                            <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
+                            <p class="text-[9px] text-blue-600 font-bold uppercase">${mIdeal.nome}</p>
+                            <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
+@@ -349,29 +406,32 @@
+                    </div>
+                    ${renderSeletorQtd(p.id, qtd)}
+                </div>`;
+            }).join(''); 
+        }
+
+        function voltarMercados() { 
+            mercadoAtualId = null;
+            document.getElementById('lista-mercados').classList.remove('hidden'); 
+            document.getElementById('detalhe-mercado').classList.add('hidden'); 
+        }
+
+        function limparLista() { 
+            minhaLista = []; 
+            atualizarTelas(); 
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function showTab(id, el) { 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+            document.querySelectorAll('.nav-btn').forEach(b => { b.classList.add('text-gray-400'); b.classList.remove('active'); }); 
+            document.getElementById('tab-' + id).classList.add('active'); 
+            el.classList.add('active'); el.classList.remove('text-gray-400'); 
+        }
+        
+        window.onload = carregarDadosDaPlanilha;
+        window.onload = () => {
+            console.info('EconomizaLocal versão', APP_VERSION);
+            carregarDadosDaPlanilha();
+        };
+    </script>
+</body>
+</html>
