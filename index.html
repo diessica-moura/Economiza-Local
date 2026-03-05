@@ -67,7 +67,7 @@
                     <i class="fas fa-spinner fa-spin"></i> Carregando preços...
                 </div>
             <div class="relative">
-                <input type="text" id="mainSearch" onkeyup="filtrarProdutos()" placeholder="Pesquise produtos..." aria-label="Pesquisar produtos" autocomplete="off" 
+                <input type="text" id="mainSearch" onkeyup="filtrarProdutosComDebounce()" placeholder="Pesquise produtos..." aria-label="Pesquisar produtos" autocomplete="off" 
                     class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
                 <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
             </div>
@@ -129,9 +129,20 @@
         ];
 
         const CHAVE_LISTA_STORAGE = 'economizalocal-minha-lista';
+        const TEMPO_LIMITE_FETCH_MS = 12000;
         let produtos = [];
         let minhaLista = carregarListaDoStorage();
         let mercadoAtualId = null;
+        let timeoutBusca;
+        const detalhesCarrinhoAbertos = new Set();
+
+        function buscarComTimeout(url, opcoes = {}, timeoutMs = TEMPO_LIMITE_FETCH_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+            return fetch(url, { ...opcoes, signal: controller.signal })
+                .finally(() => clearTimeout(timer));
+        }
 
         function carregarListaDoStorage() {
             try {
@@ -208,7 +219,7 @@
                     if(!m.url || m.url.includes('https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv')) continue;
 
                     try {
-                        const resposta = await fetch(m.url + '&t=' + new Date().getTime());
+                        const resposta = await buscarComTimeout(m.url + '&t=' + new Date().getTime());
                         if (!resposta.ok) throw new Error(`Falha HTTP ${resposta.status}`);
 
                         const texto = await resposta.text();
@@ -332,6 +343,11 @@
             renderizarHome(filtrados, termo.length > 0);
         }
 
+        function filtrarProdutosComDebounce() {
+            clearTimeout(timeoutBusca);
+            timeoutBusca = setTimeout(filtrarProdutos, 180);
+        }
+
         function adicionarLista(id) { 
             const item = minhaLista.find(i => i.id === id);
             if (item) item.quantidade++;
@@ -360,16 +376,28 @@
         function toggleItensCarrinho(idMercado) {
             const div = document.getElementById('detalhe-itens-' + idMercado);
             const icon = document.getElementById('icon-arrow-' + idMercado);
+
+            if (!div || !icon) return;
+
             div.classList.toggle('aberto');
             icon.classList.toggle('fa-chevron-down');
             icon.classList.toggle('fa-chevron-up');
+
+            if (div.classList.contains('aberto')) detalhesCarrinhoAbertos.add(idMercado);
+            else detalhesCarrinhoAbertos.delete(idMercado);
         }
 
         function renderizarCarrinho() {
             const cont = document.getElementById('resumo-carrinho');
             const vazio = document.getElementById('carrinho-vazio');
             const btnLimpar = document.getElementById('btn-limpar-container');
-            if(minhaLista.length === 0) { cont.innerHTML = ''; vazio.classList.remove('hidden'); btnLimpar.classList.add('hidden'); return; }
+            if(minhaLista.length === 0) {
+                detalhesCarrinhoAbertos.clear();
+                cont.innerHTML = '';
+                vazio.classList.remove('hidden');
+                btnLimpar.classList.add('hidden');
+                return;
+            }
             vazio.classList.add('hidden'); btnLimpar.classList.remove('hidden');
 
             const resumoMercados = mercados.map(m => {
@@ -410,6 +438,7 @@
             const primeiroMercadoCompleto = resumoMercados.find(r => r.itensSemPreco === 0);
 
             cont.innerHTML = resumoMercados.map(({ mercado, total, itensSemPreco, listaItensHtml }) => {
+                const mercadoEstaAberto = detalhesCarrinhoAbertos.has(mercado.id);
                 const destaqueMaisBarato = primeiroMercadoCompleto && mercado.id === primeiroMercadoCompleto.mercado.id
                     ? `<span class="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-1 rounded-full">Mais barato</span>`
                     : '';
@@ -423,14 +452,14 @@
                     <div onclick="toggleItensCarrinho('${mercado.id}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50 transition">
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="font-bold text-gray-800 text-sm">${mercado.nome} <i id="icon-arrow-${mercado.id}" class="fas fa-chevron-down text-[10px] ml-1 text-gray-400"></i></h3>
+                                <h3 class="font-bold text-gray-800 text-sm">${mercado.nome} <i id="icon-arrow-${mercado.id}" class="fas ${mercadoEstaAberto ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px] ml-1 text-gray-400"></i></h3>
                                 ${destaqueMaisBarato}
                             </div>
                             ${infoCobertura}
                         </div>
                         <div class="text-right"><p class="text-lg font-black text-blue-600">R$ ${total.toFixed(2)}</p></div>
                     </div>
-                    <div id="detalhe-itens-${mercado.id}" class="detalhe-itens-carrinho bg-slate-50 px-4 pb-3">
+                    <div id="detalhe-itens-${mercado.id}" class="detalhe-itens-carrinho ${mercadoEstaAberto ? 'aberto' : ''} bg-slate-50 px-4 pb-3">
                         ${listaItensHtml}
                     </div>
                 </div>`;
