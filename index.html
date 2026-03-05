@@ -380,10 +380,11 @@
                             <span class="text-[11px] text-gray-600 block truncate">${p.quantidade}x ${p.nome} <span class="font-bold">(${p.marca})</span></span>
                             <span class="text-[11px] font-bold ${temPreco ? 'text-gray-800' : 'text-amber-500'} block">${temPreco ? `R$ ${(preco * p.quantidade).toFixed(2)}` : 'Sem preço'}</span>
                         </div>
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-1 bg-white/70 p-1 rounded-lg border border-slate-100">
                             <button onclick="event.stopPropagation(); removerItemEspecifico(${p.id})" class="w-7 h-7 flex items-center justify-center bg-white border border-red-100 rounded-md text-red-500 shadow-sm active:scale-75" title="Excluir 1 item" aria-label="Excluir 1 item">
                                 <i class="fas fa-trash-alt text-[10px]"></i>
                             </button>
+                            <span class="text-xs font-black text-blue-700 min-w-[15px] text-center">${p.quantidade}</span>
                             <button onclick="event.stopPropagation(); adicionarLista(${p.id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm active:scale-75" title="Adicionar 1 item">
                                 <i class="fas fa-plus text-[10px]"></i>
                             </button>
