@@ -436,12 +436,12 @@
                         if (precosPromocao.length === 0) return;
 
                         const minP = Math.min(...precosPromocao);
-                        const textoPromocao = `Promoção em: ${p.promoMercados.join(', ')}`;
+                        const mercadosPromocao = p.promoMercados.join(', ');
 
                         promoCont.innerHTML += `
                             <div class="promo-card min-w-[180px] p-3 rounded-2xl border border-blue-100 shadow-sm">
-                                <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
-                                <p class="text-[9px] text-blue-600 font-bold uppercase">${textoPromocao}</p>
+                                <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome} <span class="text-[10px] text-gray-500 font-semibold">(${p.marca})</span></h4>
+                                <p class="text-[9px] text-blue-600 font-bold uppercase">${mercadosPromocao}</p>
                                 <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
                             </div>`;
                     });
