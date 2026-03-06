@@ -310,15 +310,18 @@
                             if (col.length < 4 || !col[0]) return;
 
                             const idProd = col[0].trim();
+                            const isPromoLinha = col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false;
                             
                             if (!mapaProdutos[idProd]) {
                                 mapaProdutos[idProd] = {
                                     id: parseInt(idProd),
                                     nome: col[1],
                                     marca: col[2],
-                                    promo: col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false
+                                    promo: isPromoLinha
                                 };
                                 mercados.forEach(merc => mapaProdutos[idProd][`preco${merc.id}`] = 0);
+                            } else if (isPromoLinha) {
+                                mapaProdutos[idProd].promo = true;
                             }
                             mapaProdutos[idProd][`preco${m.id}`] = parseFloat((col[3] || "0").replace(',', '.'));
                         });
