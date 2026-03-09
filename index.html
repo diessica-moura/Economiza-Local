@@ -112,7 +112,7 @@
         </div>
         <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
         <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços dos supermercados de Marechal Cândido Rondon em um só lugar.</p>
-        <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
+        <button id="btn-iniciar" onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
             Começar a Economizar
         </button>
         <p class="absolute bottom-10 text-[10px] text-blue-300 uppercase font-bold tracking-widest">Versão Oficial 2026</p>
@@ -175,10 +175,9 @@
     <script>
         function iniciarApp() {
             const screen = document.getElementById('welcome-screen');
-            if (screen) {
-                screen.style.opacity = '0';
-                setTimeout(() => { screen.style.visibility = 'hidden'; }, 500);
-            }
+            if (!screen) return;
+            screen.style.opacity = '0';
+            setTimeout(() => { screen.style.visibility = 'hidden'; }, 500);
         }
 
         const mercados = [
@@ -200,7 +199,7 @@
         const TEMPO_LIMITE_FETCH_MS = 12000;
         
         let produtos = [];
-        let minhaLista = carregarListaDoStorage();
+        let minhaLista = [];
         let mercadoAtualId = null;
         let timeoutBusca;
         const detalhesCarrinhoAbertos = new Set();
@@ -214,109 +213,97 @@
         }
 
         function obterStorage(chave, valorPadrao = '') {
-            try { const valor = localStorage.getItem(chave); return valor === null ? valorPadrao : valor; } catch { return valorPadrao; }
+            try { return localStorage.getItem(chave) || valorPadrao; } catch { return valorPadrao; }
         }
 
         function definirStorage(chave, valor) {
-            try { localStorage.setItem(chave, valor); } catch { }
+            try { localStorage.setItem(chave, valor); } catch {}
         }
 
         function carregarListaDoStorage() {
             try {
                 const listaSalva = JSON.parse(obterStorage(CHAVE_LISTA_STORAGE, '[]'));
-                if (!Array.isArray(listaSalva)) return [];
-                return listaSalva.map(item => ({ id: Number(item.id), quantidade: Math.max(1, Number(item.quantidade) || 1) })).filter(item => Number.isFinite(item.id));
+                return Array.isArray(listaSalva) ? listaSalva.map(item => ({ id: Number(item.id), quantidade: Math.max(1, Number(item.quantidade) || 1) })) : [];
             } catch { return []; }
         }
 
         function salvarListaNoStorage() {
-            const listaParaSalvar = minhaLista.map(item => ({ id: item.id, quantidade: item.quantidade }));
-            definirStorage(CHAVE_LISTA_STORAGE, JSON.stringify(listaParaSalvar));
+            definirStorage(CHAVE_LISTA_STORAGE, JSON.stringify(minhaLista.map(item => ({ id: item.id, quantidade: item.quantidade }))));
         }
 
         function sincronizarListaComProdutos() {
-            minhaLista = minhaLista.map(item => {
-                const produtoAtual = produtos.find(prod => prod.id === item.id);
-                return produtoAtual ? { ...produtoAtual, quantidade: item.quantidade } : null;
-            }).filter(Boolean);
-            salvarListaNoStorage();
+            minhaLista = carregarListaDoStorage()
+                .map(item => {
+                    const prod = produtos.find(p => p.id === item.id);
+                    return prod ? { ...prod, quantidade: item.quantidade } : null;
+                }).filter(Boolean);
         }
 
         function formatarData(timestampIso) {
             const data = new Date(timestampIso);
-            if (Number.isNaN(data.getTime())) return '';
-            return data.toLocaleDateString('pt-BR');
+            return isNaN(data.getTime()) ? '' : data.toLocaleDateString('pt-BR');
         }
 
         function normalizarTexto(texto) {
-            return (texto || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ç/g, 'c').replace(/Ç/g, 'C').toLowerCase();
+            return (texto || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         }
 
         function atualizarIndicadorData(status = 'carregando') {
             const dataContainer = document.getElementById('container-data');
-            if (!dataContainer) return;
             if (status === 'carregando') { dataContainer.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Atualizando preços...`; return; }
-            if (status === 'erro') { dataContainer.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Erro ao atualizar preços`; return; }
-            if (!ultimaAtualizacaoRegistrada) { dataContainer.innerHTML = `<i class="fas fa-clock"></i> Aguardando atualização...`; return; }
-            dataContainer.innerHTML = `<i class="fas fa-clock"></i> ATUALIZADO EM ${formatarData(ultimaAtualizacaoRegistrada)}`;
+            if (status === 'erro') { dataContainer.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Erro ao atualizar`; return; }
+            const textoData = formatarData(ultimaAtualizacaoRegistrada);
+            dataContainer.innerHTML = `<i class="fas fa-clock"></i> ATUALIZADO EM ${textoData || 'HOJE'}`;
         }
 
         function gerarAssinaturaPrecos(listaProdutos) {
-            return listaProdutos.slice().sort((a, b) => a.id - b.id).map(p => {
-                const precos = mercados.map(m => Number(p[`preco${m.id}`] || 0).toFixed(2)).join('|');
-                return `${p.id}:${precos}`;
-            }).join(';');
+            return listaProdutos.slice().sort((a, b) => a.id - b.id).map(p => `${p.id}:${mercados.map(m => Number(p[`preco${m.id}`] || 0).toFixed(2)).join('|')}`).join(';');
         }
 
         function contarSeparadoresForaDeAspas(textoLinha, separador) {
-            let dentroAspas = false, contador = 0;
-            for (const char of textoLinha) {
-                if (char === '"') dentroAspas = !dentroAspas;
-                if (char === separador && !dentroAspas) contador++;
-            }
+            let dentro = false, contador = 0;
+            for (const char of textoLinha) { if (char === '"') dentro = !dentro; if (char === separador && !dentro) contador++; }
             return contador;
         }
 
         function parseLinhaCSV(linha, separador) {
-            const resultado = []; let atual = '', dentroAspas = false;
+            const resultado = []; let atual = '', dentro = false;
             for (let i = 0; i < linha.length; i++) {
                 const char = linha[i];
-                if (char === '"') {
-                    if (dentroAspas && linha[i + 1] === '"') { atual += '"'; i++; } else { dentroAspas = !dentroAspas; }
-                } else if (char === separador && !dentroAspas) { resultado.push(atual.trim()); atual = ''; }
-                else { atual += char; }
+                if (char === '"') { if (dentro && linha[i + 1] === '"') { atual += '"'; i++; } else dentro = !dentro; }
+                else if (char === separador && !dentro) { resultado.push(atual.trim()); atual = ''; }
+                else atual += char;
             }
-            resultado.push(atual.trim());
-            return resultado;
+            resultado.push(atual.trim()); return resultado;
         }
 
         async function carregarDadosDaPlanilha() {
             atualizarIndicadorData('carregando');
 
-            // 1. CARREGA CACHE IMEDIATO
-            const dadosSalvos = obterStorage(CHAVE_CACHE_PRODUTOS);
-            if (dadosSalvos) {
-                produtos = JSON.parse(dadosSalvos);
-                sincronizarListaComProdutos();
-                filtrarProdutos();
-                renderizarMercados();
-                renderizarCarrinho();
+            // 1. CARREGA CACHE (ABERTURA INSTANTÂNEA)
+            const cache = obterStorage(CHAVE_CACHE_PRODUTOS);
+            if (cache) {
+                try {
+                    produtos = JSON.parse(cache);
+                    sincronizarListaComProdutos();
+                    filtrarProdutos();
+                    renderizarMercados();
+                    renderizarCarrinho();
+                } catch(e) { console.error("Erro cache:", e); }
             }
 
-            // 2. BUSCA NOVOS DADOS EM PARALELO
             try {
                 const mapaProdutos = {};
+                // 2. BUSCA TODOS OS MERCADOS AO MESMO TEMPO (PARALELO)
                 const promessas = mercados.map(async (m) => {
                     try {
-                        const resposta = await buscarComTimeout(m.url + '&t=' + new Date().getTime());
+                        const resposta = await buscarComTimeout(m.url + '&t=' + Date.now());
                         if (!resposta.ok) return;
                         const texto = await resposta.text();
                         const linhas = texto.split(/\r?\n/).filter(Boolean);
                         if (linhas.length < 2) return;
 
-                        const cabecalho = linhas[0];
-                        const separador = contarSeparadoresForaDeAspas(cabecalho, ';') >= contarSeparadoresForaDeAspas(cabecalho, ',') ? ';' : ',';
-                        
+                        const separador = contarSeparadoresForaDeAspas(linhas[0], ';') >= contarSeparadoresForaDeAspas(linhas[0], ',') ? ';' : ',';
                         linhas.slice(1).forEach(linha => {
                             const col = parseLinhaCSV(linha, separador);
                             if (col.length < 4 || !col[0]) return;
@@ -324,13 +311,13 @@
                             const isPromo = col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false;
                             
                             if (!mapaProdutos[idProd]) {
-                                mapaProdutos[idProd] = { id: parseInt(idProd), nome: col[1], marca: col[2], promoMercados: [] };
+                                mapaProdutos[idProd] = { id: parseInt(idProd), nome: col[1], marca: col[2], promo: isPromo, promoMercados: [] };
                                 mercados.forEach(merc => mapaProdutos[idProd][`preco${merc.id}`] = 0);
                             }
                             if (isPromo && !mapaProdutos[idProd].promoMercados.includes(m.nome)) mapaProdutos[idProd].promoMercados.push(m.nome);
                             mapaProdutos[idProd][`preco${m.id}`] = parseFloat((col[3] || "0").replace(',', '.'));
                         });
-                    } catch (e) { console.error(`Erro ${m.nome}:`, e); }
+                    } catch (e) { console.error(m.nome, e); }
                 });
 
                 await Promise.all(promessas);
@@ -338,9 +325,9 @@
                 
                 if (novosProdutos.length > 0) {
                     produtos = novosProdutos;
-                    definirStorage(CHAVE_CACHE_PRODUTOS, JSON.stringify(produtos));
+                    definirStorage(CHAVE_CACHE_PRODUTOS, JSON.stringify(produtos)); // SALVA CACHE
+                    
                     sincronizarListaComProdutos();
-
                     const novaAssinatura = gerarAssinaturaPrecos(produtos);
                     if (novaAssinatura !== assinaturaPrecosAtual) {
                         assinaturaPrecosAtual = novaAssinatura;
@@ -348,66 +335,68 @@
                         ultimaAtualizacaoRegistrada = new Date().toISOString();
                         definirStorage(CHAVE_ULTIMA_ATUALIZACAO, ultimaAtualizacaoRegistrada);
                     }
-                    atualizarIndicadorData('ok');
-                    filtrarProdutos(); renderizarMercados(); renderizarCarrinho();
                 }
-            } catch (erro) { atualizarIndicadorData('erro'); }
+
+                atualizarIndicadorData('ok');
+                filtrarProdutos();
+                renderizarMercados();
+                renderizarCarrinho();
+            } catch (erro) { 
+                atualizarIndicadorData('erro');
+                console.error("Erro Geral:", erro); 
+            }
         }
 
         function renderizarHome(lista, isBusca) {
             const geralCont = document.getElementById('comparativo-geral');
             const promoCont = document.getElementById('promo-container');
-            if(!geralCont) return;
             geralCont.innerHTML = '';
             
-            if(!isBusca && promoCont) {
+            if(!isBusca) {
                 document.getElementById('secao-promocoes').classList.remove('hidden');
-                promoCont.innerHTML = '';
-                produtos.filter(p => p.promoMercados?.length > 0).forEach(p => {
-                    const precos = mercados.filter(m => p.promoMercados.includes(m.nome)).map(m => p[`preco${m.id}`]).filter(v => v > 0);
-                    if (precos.length === 0) return;
-                    promoCont.innerHTML += `
-                        <div class="promo-card min-w-[180px] p-3 rounded-2xl border border-blue-100 shadow-sm">
-                            <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome} <span class="text-[10px] text-gray-500">(${p.marca})</span></h4>
-                            <p class="text-[9px] text-blue-600 font-bold uppercase">${p.promoMercados.join(', ')}</p>
-                            <p class="text-green-600 font-black text-base">R$ ${Math.min(...precos).toFixed(2)}</p>
-                        </div>`;
-                });
-            } else if(isBusca) { document.getElementById('secao-promocoes').classList.add('hidden'); }
+                promoCont.innerHTML = produtos.filter(p => p.promoMercados?.length > 0).map(p => {
+                    const minP = Math.min(...mercados.filter(m => p.promoMercados.includes(m.nome)).map(m => p[`preco${m.id}`]).filter(v => v > 0));
+                    return `<div class="promo-card min-w-[180px] p-3 rounded-2xl border shadow-sm">
+                                <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome}</h4>
+                                <p class="text-[9px] text-blue-600 font-bold uppercase">${p.promoMercados.join(', ')}</p>
+                                <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
+                            </div>`;
+                }).join('');
+            } else document.getElementById('secao-promocoes').classList.add('hidden');
 
             lista.forEach(p => {
-                const item = minhaLista.find(i => i.id === p.id);
+                const itemNaLista = minhaLista.find(item => item.id === p.id);
+                const qtd = itemNaLista ? itemNaLista.quantidade : 0;
                 const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
                 if (precosValidos.length === 0) return;
                 const minP = Math.min(...precosValidos);
 
                 if(isBusca) {
-                    geralCont.innerHTML += `
-                        <div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
-                            <div class="flex justify-between items-start mb-3">
-                                <div><h4 class="font-black text-gray-800 text-sm uppercase">${p.nome}</h4><p class="text-[10px] text-gray-400">${p.marca}</p></div>
-                                ${renderSeletorQtd(p.id, item?.quantidade || 0)}
-                            </div>
-                            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-dashed">
-                                ${mercados.map(m => {
-                                    const v = p[`preco${m.id}`]; if(!v) return '';
-                                    return `<div class="text-center p-1 rounded ${v === minP ? 'bg-green-50' : 'bg-gray-50'}">
-                                        <p class="text-[7px] uppercase font-bold text-gray-400">${m.nome}</p>
-                                        <p class="text-[10px] font-black ${v === minP ? 'text-green-600' : 'text-gray-600'}">R$ ${v.toFixed(2)}</p>
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                        </div>`;
+                    geralCont.innerHTML += `<div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
+                        <div class="flex justify-between items-start mb-3">
+                            <div><h4 class="font-black text-gray-800 text-sm uppercase">${p.nome}</h4><p class="text-[10px] text-gray-400">${p.marca}</p></div>
+                            ${renderSeletorQtd(p.id, qtd)}
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-dashed">
+                            ${mercados.map(m => {
+                                const v = p[`preco${m.id}`];
+                                if(!v) return '';
+                                return `<div class="text-center p-1 rounded ${v === minP ? 'bg-green-50' : 'bg-gray-50'}">
+                                    <p class="text-[7px] uppercase font-bold text-gray-400">${m.nome}</p>
+                                    <p class="text-[10px] font-black ${v === minP ? 'text-green-600' : 'text-gray-600'}">R$ ${v.toFixed(2)}</p>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`;
                 } else {
                     const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
-                    geralCont.innerHTML += `
-                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
-                            <div class="flex-1">
-                                <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
-                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
-                            </div>
-                            ${renderSeletorQtd(p.id, item?.quantidade || 0)}
-                        </div>`;
+                    geralCont.innerHTML += `<div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
+                            <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
+                        </div>
+                        ${renderSeletorQtd(p.id, qtd)}
+                    </div>`;
                 }
             });
         }
@@ -415,38 +404,34 @@
         function renderSeletorQtd(id, qtd) {
             if (qtd === 0) return `<button onclick="adicionarLista(${id})" class="bg-green-600 text-white text-[10px] px-3 py-2 rounded-lg font-bold uppercase shadow-sm active:scale-95 transition">Adicionar</button>`;
             return `<div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border">
-                <button onclick="removerItemEspecifico(${id})" class="w-7 h-7 flex items-center justify-center bg-white rounded-md text-red-500 shadow-sm"><i class="fas ${qtd === 1 ? 'fa-trash-alt' : 'fa-minus'} text-[10px]"></i></button>
+                <button onclick="removerItemEspecifico(${id})" class="w-7 h-7 flex items-center justify-center bg-white rounded-md text-red-500 shadow-sm active:scale-75"><i class="fas ${qtd === 1 ? 'fa-trash-alt' : 'fa-minus'} text-[10px]"></i></button>
                 <span class="text-xs font-black text-blue-700 min-w-[15px] text-center">${qtd}</span>
-                <button onclick="adicionarLista(${id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm"><i class="fas fa-plus text-[10px]"></i></button>
+                <button onclick="adicionarLista(${id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm active:scale-75"><i class="fas fa-plus text-[10px]"></i></button>
             </div>`;
         }
 
         function filtrarProdutos() {
-            const termo = normalizarTexto(document.getElementById('mainSearch')?.value || '');
-            const filtrados = produtos.filter(p => normalizarTexto(p.nome).includes(termo) || normalizarTexto(p.marca).includes(termo));
-            renderizarHome(filtrados, termo.length > 0);
+            const termo = normalizarTexto(document.getElementById('mainSearch').value);
+            renderizarHome(produtos.filter(p => normalizarTexto(p.nome).includes(termo) || normalizarTexto(p.marca).includes(termo)), termo.length > 0);
         }
 
         function filtrarProdutosComDebounce() { clearTimeout(timeoutBusca); timeoutBusca = setTimeout(filtrarProdutos, 180); }
 
         function adicionarLista(id) { 
             const item = minhaLista.find(i => i.id === id);
-            if (item) item.quantidade++;
-            else { const p = produtos.find(prod => prod.id === id); if(p) minhaLista.push({ ...p, quantidade: 1 }); }
-            atualizarTelas();
-            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+            if (item) item.quantidade++; else { const p = produtos.find(prod => prod.id === id); if(p) minhaLista.push({ ...p, id: Number(id), quantidade: 1 }); }
+            atualizarTelas(); if(mercadoAtualId) abrirMercado(mercadoAtualId);
         }
 
         function removerItemEspecifico(id) { 
             const item = minhaLista.find(i => i.id === id);
             if (item) { if (item.quantidade > 1) item.quantidade--; else minhaLista = minhaLista.filter(i => i.id !== id); }
-            atualizarTelas();
-            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+            atualizarTelas(); if(mercadoAtualId) abrirMercado(mercadoAtualId);
         }
 
         function atualizarTelas() {
             salvarListaNoStorage(); filtrarProdutos(); renderizarCarrinho();
-            const x = document.getElementById("toast"); if(x){ x.className = "show"; setTimeout(() => x.className = x.className.replace("show", ""), 2000); }
+            const x = document.getElementById("toast"); x.className = "show"; setTimeout(() => x.className = x.className.replace("show", ""), 2000);
         }
 
         function toggleItensCarrinho(idMercado) {
@@ -459,92 +444,67 @@
         }
 
         function renderizarCarrinho() {
-            const cont = document.getElementById('resumo-carrinho');
-            const vazio = document.getElementById('carrinho-vazio');
-            const btnLimpar = document.getElementById('btn-limpar-container');
-            if(!cont) return;
-            if(minhaLista.length === 0) { 
-                detalhesCarrinhoAbertos.clear(); cont.innerHTML = ''; 
-                vazio?.classList.remove('hidden'); btnLimpar?.classList.add('hidden'); return; 
-            }
-            vazio?.classList.add('hidden'); btnLimpar?.classList.remove('hidden');
+            const cont = document.getElementById('resumo-carrinho'), vazio = document.getElementById('carrinho-vazio'), btnLimpar = document.getElementById('btn-limpar-container');
+            if(minhaLista.length === 0) { cont.innerHTML = ''; vazio.classList.remove('hidden'); btnLimpar.classList.add('hidden'); return; }
+            vazio.classList.add('hidden'); btnLimpar.classList.remove('hidden');
 
             const resumo = mercados.map(m => {
-                let totalM = 0, itensSemPreco = 0;
+                let total = 0, semPreco = 0;
                 const html = minhaLista.map(p => {
-                    const preco = p[`preco${m.id}`]; const tem = preco > 0;
-                    if (tem) totalM += preco * p.quantidade; else itensSemPreco++;
+                    const preco = p[`preco${m.id}`]; if (preco > 0) total += preco * p.quantidade; else semPreco++;
                     return `<div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                        <div class="flex-1 truncate text-[11px]"><span class="font-bold">${p.quantidade}x</span> ${p.nome}</div>
-                        <div class="text-[11px] font-bold ${tem ? 'text-gray-800' : 'text-amber-500'}">${tem ? `R$ ${(preco * p.quantidade).toFixed(2)}` : 'N/A'}</div>
+                        <div class="flex-1 min-w-0"><span class="text-[11px] text-gray-600 block truncate">${p.quantidade}x ${p.nome} (${p.marca})</span>
+                        <span class="text-[11px] font-bold ${preco > 0 ? 'text-gray-800' : 'text-amber-500'}">${preco > 0 ? 'R$ ' + (preco * p.quantidade).toFixed(2) : 'Sem preço'}</span></div>
+                        <div class="flex items-center gap-1">${renderSeletorQtd(p.id, p.quantidade)}</div>
                     </div>`;
                 }).join('');
-                return { mercado: m, total: totalM, itensSemPreco, html };
-            }).sort((a, b) => a.itensSemPreco - b.itensSemPreco || a.total - b.total);
+                return { m, total, semPreco, html };
+            }).sort((a,b) => a.semPreco - b.semPreco || a.total - b.total);
 
-            cont.innerHTML = resumo.map(({ mercado, total, itensSemPreco, html }) => `
-                <div class="bg-white rounded-2xl shadow-sm border mb-3 overflow-hidden">
-                    <div onclick="toggleItensCarrinho('${mercado.id}')" class="p-4 flex justify-between items-center cursor-pointer">
-                        <div>
-                            <h3 class="font-bold text-sm">${mercado.nome} <i id="icon-arrow-${mercado.id}" class="fas fa-chevron-down text-[10px] text-gray-400"></i></h3>
-                            <p class="text-[10px] ${itensSemPreco > 0 ? 'text-amber-500' : 'text-gray-400'}">${itensSemPreco > 0 ? `${itensSemPreco} s/ preço` : 'Completo'}</p>
-                        </div>
+            cont.innerHTML = resumo.map(({ m, total, semPreco, html }) => {
+                const aberto = detalhesCarrinhoAbertos.has(m.id);
+                return `<div class="bg-white rounded-2xl shadow-sm border overflow-hidden mb-3">
+                    <div onclick="toggleItensCarrinho('${m.id}')" class="p-4 flex justify-between items-center cursor-pointer">
+                        <div><h3 class="font-bold text-gray-800 text-sm">${m.nome} <i id="icon-arrow-${m.id}" class="fas ${aberto ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i></h3>
+                        <p class="text-[10px] ${semPreco > 0 ? 'text-amber-500 font-bold' : 'text-gray-400'}">${semPreco > 0 ? semPreco + ' itens sem preço' : 'Completo'}</p></div>
                         <p class="text-lg font-black text-blue-600">R$ ${total.toFixed(2)}</p>
                     </div>
-                    <div id="detalhe-itens-${mercado.id}" class="detalhe-itens-carrinho hidden bg-slate-50 px-4 pb-3">${html}</div>
-                </div>`).join('');
+                    <div id="detalhe-itens-${m.id}" class="detalhe-itens-carrinho ${aberto ? 'aberto' : ''} bg-slate-50 px-4 pb-3">${html}</div>
+                </div>`;
+            }).join('');
         }
 
         function renderizarMercados() { 
-            const cont = document.getElementById('lista-mercados'); 
-            if(!cont) return;
-            cont.innerHTML = mercados.map(m => `
-                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm">
-                    <span class="font-bold text-gray-700">${m.nome}</span>
-                    <i class="fas fa-chevron-right text-gray-200"></i>
+            document.getElementById('lista-mercados').innerHTML = mercados.map(m => `
+                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm active:bg-slate-50">
+                    <span class="font-bold text-gray-700">${m.nome}</span><i class="fas fa-chevron-right text-gray-200"></i>
                 </div>`).join(''); 
         }
 
         function abrirMercado(id) { 
             mercadoAtualId = id; const m = mercados.find(merc => merc.id === id); 
-            document.getElementById('lista-mercados')?.classList.add('hidden'); 
-            document.getElementById('detalhe-mercado')?.classList.remove('hidden'); 
-            const header = document.getElementById('mercado-header-info');
-            if(header) header.innerHTML = `<div class="bg-blue-700 p-4 rounded-xl text-white shadow-md"><h3 class="font-bold">${m.nome}</h3></div>`; 
-            
-            const prodCont = document.getElementById('produtos-mercado-especifico');
-            if(prodCont) prodCont.innerHTML = produtos.map(p => {
-                const item = minhaLista.find(i => i.id === p.id);
-                const precoM = p[`preco${id}`]; if(precoM <= 0) return '';
-                return `<div class="bg-white p-3 rounded-lg border flex justify-between items-center shadow-sm mb-2">
-                    <div class="flex-1">
-                        <span class="block font-medium text-gray-800 text-sm">${p.nome}</span>
-                        <span class="text-[10px] text-gray-400 uppercase">${p.marca}</span>
-                        <p class="text-blue-600 font-bold text-xs">R$ ${precoM.toFixed(2)}</p>
-                    </div>
-                    ${renderSeletorQtd(p.id, item?.quantidade || 0)}
-                </div>`;
-            }).join(''); 
+            document.getElementById('lista-mercados').classList.add('hidden'); document.getElementById('detalhe-market').classList?.remove('hidden');
+            const det = document.getElementById('detalhe-mercado'); det.classList.remove('hidden');
+            document.getElementById('mercado-header-info').innerHTML = `<div class="bg-blue-700 p-4 rounded-xl text-white shadow-md"><h3 class="font-bold">${m.nome}</h3></div>`; 
+            document.getElementById('produtos-mercado-especifico').innerHTML = produtos.filter(p => p[`preco${id}`] > 0).map(p => `
+                <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm shadow-sm">
+                    <div class="flex-1"><span class="font-medium text-gray-800">${p.nome}</span><br><span class="text-[10px] text-gray-400 font-bold uppercase">${p.marca}</span>
+                    <p class="text-[11px] font-bold text-blue-600 mt-1">R$ ${p[`preco${id}`].toFixed(2)}</p></div>
+                    ${renderSeletorQtd(p.id, minhaLista.find(i => i.id === p.id)?.quantidade || 0)}
+                </div>`).join(''); 
         }
 
-        function voltarMercados() { 
-            mercadoAtualId = null;
-            document.getElementById('lista-mercados')?.classList.remove('hidden'); 
-            document.getElementById('detalhe-mercado')?.classList.add('hidden'); 
-        }
-
+        function voltarMercados() { mercadoAtualId = null; document.getElementById('lista-mercados').classList.remove('hidden'); document.getElementById('detalhe-mercado').classList.add('hidden'); }
         function limparLista() { minhaLista = []; atualizarTelas(); if(mercadoAtualId) abrirMercado(mercadoAtualId); }
-
         function showTab(id, el) { 
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
-            document.querySelectorAll('.nav-btn').forEach(b => { b.classList.add('text-gray-400'); b.classList.remove('active'); }); 
-            document.getElementById('tab-' + id)?.classList.add('active'); 
-            el.classList.add('active'); el.classList.remove('text-gray-400'); 
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('active', 'text-gray-400')); 
+            document.getElementById('tab-' + id).classList.add('active'); el.classList.replace('text-gray-400', 'active'); 
         }
         
         window.onload = () => {
             carregarDadosDaPlanilha();
-            // Início automático: fecha a tela azul em 1.2s se houver dados
+            // 3. FECHA TELA AZUL AUTOMATICAMENTE SE HOUVER DADOS
             setTimeout(() => { if (produtos.length > 0) iniciarApp(); }, 1200);
         };
     </script>
