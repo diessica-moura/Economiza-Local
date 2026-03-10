@@ -6,48 +6,31 @@ const msg = document.getElementById('msg');
 const btnSair = document.getElementById('btn-sair');
 
 onAuthStateChanged(auth, (user) => {
-    if (user && user.uid === MEU_UID_ADMIN) {
-        msg.style.display = 'none';
-        painel.style.display = 'block';
+    if (user) {
+        // Alguém está logado. Vamos ver se é você pelo UID:
+        if (user.uid === MEU_UID_ADMIN) {
+            msg.style.display = 'none';
+            painel.style.display = 'block';
+        } else {
+            // É outro usuário (talvez um lojista), negue o acesso
+            msg.innerHTML = `
+                <p style="color:red">⚠️ Acesso Negado. Você não é a administradora.</p>
+                <button onclick="window.location.href='index.html'">Voltar ao Início</button>
+            `;
+        }
     } else {
-        msg.innerHTML = "❌ Acesso Negado.<br>Redirecionando...";
-        setTimeout(() => window.location.href = "index.html", 2500);
+        // NINGUÉM está logado. Em vez de expulsar, vamos dar o botão de login:
+        msg.innerHTML = `
+            <p>Você precisa se identificar para entrar aqui.</p>
+            <button onclick="window.location.href='login-loja.html'" style="background:#007bff; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer;">
+                Ir para Tela de Login
+            </button>
+        `;
     }
 });
 
-btnSair.addEventListener('click', () => {
-    signOut(auth).then(() => window.location.href = "index.html");
-});
-import { db } from './firebase-config.js';
-import { collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// Função para listar os mercados na tela
-async function carregarMercados() {
-    const listaDiv = document.getElementById('lista-mercados'); // Verifique se esse ID existe no seu admin.html
-    const querySnapshot = await getDocs(collection(db, "mercados"));
-    
-    listaDiv.innerHTML = "<h3>Mercados Ativos:</h3>";
-    
-    querySnapshot.forEach((docSnap) => {
-        const dados = docSnap.data();
-        listaDiv.innerHTML += `
-            <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 5px; border-radius: 5px;">
-                <strong>${dados.nome}</strong> - ${dados.cidade}
-                <button onclick="excluirMercado('${docSnap.id}')" style="background:red; width:auto; padding: 5px 10px; margin-left: 10px;">Excluir</button>
-            </div>
-        `;
+if(btnSair) {
+    btnSair.addEventListener('click', () => {
+        signOut(auth).then(() => window.location.href = "index.html");
     });
 }
-
-// Função para deletar um mercado
-window.excluirMercado = async (id) => {
-    if (confirm("Tem certeza que deseja remover este mercado do app?")) {
-        await deleteDoc(doc(db, "mercados", id));
-        alert("Mercado removido!");
-        location.reload(); // Recarrega para atualizar a lista
-    }
-};
-
-// Chama a lista assim que o admin logar
-carregarMercados();
-
