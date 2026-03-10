@@ -20,3 +20,6 @@ const app = initializeApp(firebaseConfig);
 // 4. Crie as variáveis para usar o Login e o Banco de Dados
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// 5.
+export const MEU_UID_ADMIN = "Tk9CpRVdIkhv1DQMM54YjqRHwj93";
