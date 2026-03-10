@@ -693,32 +693,13 @@
             carregarDadosDaPlanilha();
         };
    
- <script type="module">
-        // Importamos a configuração que você já arrumou no passo 1
-        import { auth } from './firebase-config.js';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-        // Pegamos o botão e os campos do seu HTML
-        // IMPORTANTE: Verifique se os IDs abaixo são os mesmos que você usou no seu <input>
-        const btn = document.getElementById('btnEntrar'); 
-
-        if (btn) {
-            btn.addEventListener('click', () => {
-                const email = document.getElementById('email').value;
-                const senha = document.getElementById('senha').value;
-
-                signInWithEmailAndPassword(auth, email, senha)
-                    .then(() => {
-                        console.log("Login realizado com sucesso!");
-                        // Isso faz a aba mudar para o admin.html automaticamente
-                        window.location.href = "admin.html";
-                    })
-                    .catch((error) => {
-                        console.error("Erro ao entrar:", error.code);
-                        alert("Falha no login: Verifique seu e-mail e senha.");
-                    });
-            });
-        }
-    </script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrado!', reg))
+        .catch(err => console.log('Erro ao registrar SW', err));
+    });
+  }
+</script>
 </body>
 </html>
