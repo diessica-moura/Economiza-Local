@@ -21,4 +21,4 @@ export const auth = getAuth(app);
 
 // ATENÇÃO: Vá no seu console do Firebase e copie o seu UID de admin 
 // e cole entre as aspas abaixo para o login funcionar!
-export const MEU_UID_ADMIN = "Tk9CpRVdIkhv1DQMM54YjqRHwj93";
+export const MEU_UID_ADMIN = "TTk9CpRVdIkhv1DQMM54YjqRHwj93";
