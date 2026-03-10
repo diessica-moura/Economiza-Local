@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - EconomizaLocal</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        #painel { display: none; }
+        button { width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 5px; margin-top: 10px; cursor: pointer; }
+        .sair { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Painel Admin 🛡️</h1>
+        <p id="msg">Verificando sua identidade...</p>
+
+        <div id="painel">
+            <p>Olá, Diessica! O que deseja fazer?</p>
+            <button onclick="window.location.href='login-loja.html'">➕ Cadastrar Mercado</button>
+            <button class="sair" id="btn-sair">Sair do App</button>
+        </div>
+    </div>
+
+    <script type="module" src="admin-logic.js"></script>
+</body>
+</html>
