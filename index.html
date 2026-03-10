@@ -1,36 +1,706 @@
-<body>
-    <div id="secao-login" style="display: block; text-align: center; padding-top: 50px;">
-        <h2>Economiza Local - Admin</h2>
-        <input type="email" id="email" placeholder="E-mail do Admin" style="display:block; margin: 10px auto;">
-        <input type="password" id="senha" placeholder="Senha" style="display:block; margin: 10px auto;">
-        <button id="btnEntrar">Entrar no Painel</button>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Economiza Local - Oficial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icon-32.png?v=3">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=3">
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=3">
+    <link rel="manifest" href="./manifest.webmanifest?v=3">
+    <meta name="theme-color" content="#1d4ed8">
+    <style>
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            background: #1d4ed8;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .welcome-cart-wrap {
+            width: 180px;
+            margin-bottom: 24px;
+        }
+        .welcome-cart-track {
+            position: relative;
+            height: 92px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+        .welcome-cart-track::after {
+            content: '';
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: 18px;
+            height: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.35);
+        }
+        .welcome-cart {
+            position: absolute;
+            left: 16px;
+            top: 20px;
+            color: #ffffff;
+            font-size: 52px;
+            text-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+            animation: cartDrive 2.2s ease-in-out infinite;
+            transform-origin: center bottom;
+        }
+        .welcome-cart-spark {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            filter: blur(0.3px);
+            animation: cartSpark 2.2s ease-in-out infinite;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-btn.active { color: #059669; border-top: 3px solid #059669; }
+        .promo-card { background: linear-gradient(135deg, #eff6ff 0%, #dcfce7 100%); }
+        .item-detalhe { animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cartDrive {
+            0% { transform: translateX(0) rotate(0deg); }
+            25% { transform: translateX(34px) rotate(-5deg); }
+            50% { transform: translateX(78px) rotate(0deg); }
+            75% { transform: translateX(116px) rotate(5deg); }
+            100% { transform: translateX(140px) rotate(0deg); }
+        }
+        @keyframes cartSpark {
+            0% { transform: translateX(14px) scale(0.4); opacity: 0; }
+            20% { opacity: 0.9; }
+            60% { opacity: 0.7; }
+            100% { transform: translateX(126px) scale(1.1); opacity: 0; }
+        }
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #059669; color: #fff;
+            text-align: center; border-radius: 12px; padding: 16px; position: fixed;
+            z-index: 100; left: 50%; transform: translateX(-50%); top: 30px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {top: 0; opacity: 0;} to {top: 30px; opacity: 1;} }
+        @keyframes fadeout { from {top: 30px; opacity: 1;} to {top: 0; opacity: 0;} }
+        ::-webkit-scrollbar { display: none; }
+        .detalhe-itens-carrinho { display: none; }
+        .detalhe-itens-carrinho.aberto { display: block; animation: slideDown 0.2s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans">
+<div id="aviso-clone" class="fixed inset-0 bg-white z-[10000] hidden flex-col items-center justify-center p-6 text-center">
+    <i class="fas fa-exclamation-triangle text-red-500 text-5xl mb-4"></i>
+    <h2 class="text-2xl font-black text-gray-800 mb-2">Acesso Não Autorizado</h2>
+    <p class="text-gray-600 mb-6">Este é um clone não oficial do EconomizaLocal. Por segurança, utilize sempre o link original.</p>
+    <a href="https://teu-dominio-aqui.com.br" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg">
+        Aceder ao Original
+    </a>
+</div>
+    <div id="welcome-screen">
+        <div class="welcome-cart-wrap" aria-hidden="true">
+            <div class="welcome-cart-track shadow-2xl">
+                <span class="welcome-cart-spark"></span>
+                <i class="fas fa-shopping-cart welcome-cart"></i>
+            </div>
+        </div>
+        <h1 class="text-3xl font-black mb-2 uppercase tracking-tight">EconomizaLocal</h1>
+        <p class="text-blue-100 mb-10 max-w-xs text-sm">Os melhores preços dos supermercados de Marechal Cândido Rondon em um só lugar.</p>
+        <button onclick="iniciarApp()" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-2xl shadow-lg transform active:scale-95 transition-all uppercase tracking-widest text-sm">
+            Começar a Economizar
+        </button>
+        <p class="absolute bottom-10 text-[10px] text-blue-300 uppercase font-bold tracking-widest">Versão Oficial 2026</p>
     </div>
 
-    <div id="secao-produtos" style="display: none;">
-        </div>
+    <div id="app-content">
+        <div id="toast">LISTA ATUALIZADA</div>
+        
+        <header class="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
+            <div class="flex justify-between items-center mb-1">
+                <h1 class="text-lg font-bold flex items-center gap-2"><i class="fas fa-shopping-basket"></i> Economiza Local</h1>
+                <button onclick="carregarDadosDaPlanilha()" aria-label="Atualizar preços" title="Atualizar preços" class="text-white/80 hover:text-white transition"><i class="fas fa-sync-alt text-sm"></i></button>
+            </div>
+            <div id="container-data" class="mb-3 text-[10px] text-blue-100 flex items-center gap-1 italic">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando preços...
+                </div>
+            <div class="relative">
+                <input type="text" id="mainSearch" onkeyup="filtrarProdutosComDebounce()" placeholder="Pesquise produtos..." aria-label="Pesquisar produtos" autocomplete="off" 
+                    class="w-full p-2.5 pl-10 rounded-xl text-gray-800 text-sm focus:ring-2 focus:ring-green-400 outline-none shadow-md">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            </div>
+        </header>
 
-    <script type="module">
-        import { auth } from './firebase-config.js';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        <main class="px-4 pt-4 pb-28">
+            <section id="tab-melhor-preco" class="tab-content active">
+                <div id="secao-promocoes">
+                    <h2 class="text-xs font-black text-blue-800 uppercase tracking-widest mb-3 italic">🔥 Promoções da Semana</h2>
+                    <div class="flex gap-3 overflow-x-auto pb-4 mb-4" id="promo-container"></div>
+                </div>
+                <h2 id="titulo-lista" class="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">🛒 Comparativo Geral</h2>
+                <div class="grid gap-4" id="comparativo-geral"></div>
+            </section>
+            
+            <section id="tab-mercados" class="tab-content">
+                <div id="lista-mercados" class="grid gap-3"></div>
+                <div id="detalhe-mercado" class="hidden">
+                    <button onclick="voltarMercados()" class="text-blue-600 font-bold mb-4 text-xs uppercase"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <div id="mercado-header-info" class="mb-4"></div>
+                    <div class="grid gap-2" id="produtos-mercado-especifico"></div>
+                </div>
+            </section>
 
-        const loginDiv = document.getElementById('secao-login');
-        const produtosDiv = document.getElementById('secao-produtos');
-        const btn = document.getElementById('btnEntrar');
+            <section id="tab-carrinho" class="tab-content">
+                <h2 class="text-sm font-bold text-gray-800 mb-4 uppercase text-center italic tracking-widest">Minha Lista de Compras</h2>
+                <div id="carrinho-vazio" class="text-center py-10"><i class="fas fa-receipt text-gray-200 text-6xl mb-4"></i><p class="text-gray-400 text-sm">Sua lista está vazia!</p></div>
+                <div id="resumo-carrinho" class="space-y-3"></div>
+                <div id="btn-limpar-container" class="hidden mt-6 text-center">
+                    <button onclick="limparLista()" class="text-red-400 text-xs font-bold uppercase border-b border-red-200 pb-1 italic">Limpar Lista</button>
+                </div>
+            </section>
+        </main>
 
-        btn.addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
+        <nav class="fixed bottom-0 w-full bg-white border-t flex justify-around p-2 shadow-2xl z-50">
+            <button onclick="showTab('melhor-preco', this)" class="nav-btn active flex flex-col items-center p-2 w-full"><i class="fas fa-award text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Melhor Preço</span></button>
+            <button onclick="showTab('mercados', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-store text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Mercados</span></button>
+            <button onclick="showTab('carrinho', this)" class="nav-btn flex flex-col items-center p-2 w-full text-gray-400"><i class="fas fa-shopping-bag text-xl"></i><span class="text-[9px] mt-1 font-bold uppercase">Minha Lista</span></button>
+        </nav>
+    </div>
 
-            signInWithEmailAndPassword(auth, email, senha)
-                .then((userCredential) => {
-                    // SUCESSO! Esconde o login e mostra os produtos
-                    loginDiv.style.display = 'none';
-                    produtosDiv.style.display = 'block';
-                    console.log("Bem-vindo!");
+    <script>
+        function iniciarApp() {
+            const screen = document.getElementById('welcome-screen');
+            screen.style.opacity = '0';
+            setTimeout(() => { screen.style.visibility = 'hidden'; }, 500);
+        }
+
+        const mercados = [
+            { id: 'M1', nome: "Copagril", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZR9LPUdow0IRmU5_gW8OGjVK_Faj2svOND_t24Swl-iGCl5fVIM1T8aITDtwKQVIH99cVlCacl0Qb/pub?output=csv' },
+            { id: 'M2', nome: "Waimann", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFacFVwUWZH05G-eW5rv7ulXrWG2JzbTU8Je30SM5w_1ATc6hZUcXH2kSZHvpHT6GZc4k4gvPkXHqE/pub?output=csv' },
+            { id: 'M3', nome: "Dilettare", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRyfBLLoi1FHBxGFjQ6IfCCtSJWkVWU-F1q8XBf3DyaYvaLYCigCprhXpUbD6n78iVynFRfN3uRq7pE/pub?output=csv' },
+            { id: 'M4', nome: "Allmayer", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZyyTZ_BEpICvBTjP1updcWvGjmutPITHB8YerfSVwlMn1AK43YQB0w2G_zeoLKauZWakt1_dcdrYC/pub?output=csv' },
+            { id: 'M5', nome: "Super Cercar", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQjKk7LVFzBJ-fMEcafo6OLeIGpGQ4NuX5e8dgn526woGPBeIRG4CAFMExlgqwhQm7YR6lkM_INFsAQ/pub?output=csv' },
+            { id: 'M6', nome: "Max Atacadista", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSqNCBlxAPIvnt8DJsRunDVYbc6FsUt7HYNegjXa-KQhiYwnJJxdJiwdvY37hwSGMPjHavQ8VJyf9_E/pub?output=csv' },
+            { id: 'M7', nome: "Portuga", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTx_crfv1VifyqpsfLjn90YUlm978uZy2CDPFpR0zxUEvZbvn71r-oWMylGqEIpGXusg8lyChqQ27kv/pub?output=csv' },
+            { id: 'M8', nome: "Wink", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTYVeL5I7AzIIcNkTytBhGbIbNE46sUw-nnvXEx9usAUT-xMre4IY7E-Fz0jcM7og_otXHWKk8nlIE1/pub?output=csv' },
+            { id: 'M9', nome: "Super Favorito", url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTKfkjZ9_Opghojp_3ftEZpKd-q6DXNomEeJ46f8aQnzXAv5LhPtWjjz_5ryLxUHI3eU2SpskBp3Y3s/pub?output=csv' }
+        ];
+
+        const CHAVE_LISTA_STORAGE = 'economizalocal-minha-lista';
+        const CHAVE_ASSINATURA_PRECOS = 'economizalocal-assinatura-precos';
+        const CHAVE_ULTIMA_ATUALIZACAO = 'economizalocal-ultima-atualizacao';
+        const TEMPO_LIMITE_FETCH_MS = 12000;
+        let produtos = [];
+        let minhaLista = carregarListaDoStorage();
+        let mercadoAtualId = null;
+        let timeoutBusca;
+        const detalhesCarrinhoAbertos = new Set();
+        let assinaturaPrecosAtual = obterStorage(CHAVE_ASSINATURA_PRECOS, '');
+        let ultimaAtualizacaoRegistrada = obterStorage(CHAVE_ULTIMA_ATUALIZACAO, '');
+
+        function buscarComTimeout(url, opcoes = {}, timeoutMs = TEMPO_LIMITE_FETCH_MS) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+            return fetch(url, { ...opcoes, signal: controller.signal })
+                .finally(() => clearTimeout(timer));
+        }
+
+        function obterStorage(chave, valorPadrao = '') {
+            try {
+                const valor = localStorage.getItem(chave);
+                return valor === null ? valorPadrao : valor;
+            } catch {
+                return valorPadrao;
+            }
+        }
+
+        function definirStorage(chave, valor) {
+            try {
+                localStorage.setItem(chave, valor);
+            } catch {
+                // ignora ambientes sem acesso ao localStorage
+            }
+        }
+
+        function carregarListaDoStorage() {
+            try {
+                const listaSalva = JSON.parse(obterStorage(CHAVE_LISTA_STORAGE, '[]'));
+                if (!Array.isArray(listaSalva)) return [];
+                return listaSalva
+                    .map(item => ({ id: Number(item.id), quantidade: Math.max(1, Number(item.quantidade) || 1) }))
+                    .filter(item => Number.isFinite(item.id));
+            } catch {
+                return [];
+            }
+        }
+
+        function salvarListaNoStorage() {
+            const listaParaSalvar = minhaLista.map(item => ({ id: item.id, quantidade: item.quantidade }));
+            definirStorage(CHAVE_LISTA_STORAGE, JSON.stringify(listaParaSalvar));
+        }
+
+        function sincronizarListaComProdutos() {
+            minhaLista = minhaLista
+                .map(item => {
+                    const produtoAtual = produtos.find(prod => prod.id === item.id);
+                    return produtoAtual ? { ...produtoAtual, quantidade: item.quantidade } : null;
                 })
-                .catch((error) => {
-                    alert("Erro ao entrar: " + error.message);
-                });
-        });
-    </script>
+                .filter(Boolean);
+            salvarListaNoStorage();
+        }
+
+        function formatarData(timestampIso) {
+            const data = new Date(timestampIso);
+            if (Number.isNaN(data.getTime())) return '';
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function normalizarTexto(texto) {
+            return (texto || '')
+                .toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/ç/g, 'c')
+                .replace(/Ç/g, 'C')
+                .toLowerCase();
+        }
+
+        function atualizarIndicadorData(status = 'carregando') {
+            const dataContainer = document.getElementById('container-data');
+            if (status === 'carregando') {
+                dataContainer.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Atualizando preços...`;
+                return;
+            }
+
+            if (status === 'erro') {
+                dataContainer.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Erro ao atualizar preços`;
+                return;
+            }
+
+            if (!ultimaAtualizacaoRegistrada) {
+                dataContainer.innerHTML = `<i class="fas fa-clock"></i> Aguardando primeira atualização com alteração de preços`;
+                return;
+            }
+
+            const textoData = formatarData(ultimaAtualizacaoRegistrada);
+            dataContainer.innerHTML = `<i class="fas fa-clock"></i> ATUALIZADO EM ${textoData}`;
+        }
+
+        function gerarAssinaturaPrecos(listaProdutos) {
+            return listaProdutos
+                .slice()
+                .sort((a, b) => a.id - b.id)
+                .map(produto => {
+                    const precos = mercados
+                        .map(m => Number(produto[`preco${m.id}`] || 0).toFixed(2))
+                        .join('|');
+                    return `${produto.id}:${precos}`;
+                })
+                .join(';');
+        }
+
+        function contarSeparadoresForaDeAspas(textoLinha, separador) {
+            let dentroAspas = false;
+            let contador = 0;
+
+            for (const char of textoLinha) {
+                if (char === '"') dentroAspas = !dentroAspas;
+                if (char === separador && !dentroAspas) contador++;
+            }
+            return contador;
+        }
+
+        function parseLinhaCSV(linha, separador) {
+            const resultado = [];
+            let atual = '';
+            let dentroAspas = false;
+
+            for (let i = 0; i < linha.length; i++) {
+                const char = linha[i];
+                if (char === '"') {
+                    if (dentroAspas && linha[i + 1] === '"') {
+                        atual += '"';
+                        i++;
+                    } else {
+                        dentroAspas = !dentroAspas;
+                    }
+                } else if (char === separador && !dentroAspas) {
+                    resultado.push(atual.trim());
+                    atual = '';
+                } else {
+                    atual += char;
+                }
+            }
+
+            resultado.push(atual.trim());
+            return resultado;
+        }
+
+        async function carregarDadosDaPlanilha() {
+            atualizarIndicadorData('carregando');
+
+            try {
+                const mapaProdutos = {};
+
+                for (const m of mercados) {
+                    if(!m.url || m.url.includes('https://docs.google.com/spreadsheets/d/e/2PACX-1vRbDOvQmDzzlrQusXFtXXwq0y2yYkhX9I3t-Q5AukcU-MsZ_uEMQGsGw5ZKllOyVgtSfPu_gbZU4YVS/pub?output=csv')) continue;
+
+                    try {
+                        const resposta = await buscarComTimeout(m.url + '&t=' + new Date().getTime());
+                        if (!resposta.ok) throw new Error(`Falha HTTP ${resposta.status}`);
+
+                        const texto = await resposta.text();
+                        const linhas = texto.split(/\r?\n/).filter(Boolean);
+                        if (linhas.length < 2) continue;
+
+                        const cabecalho = linhas[0];
+                        const separador = contarSeparadoresForaDeAspas(cabecalho, ';') >= contarSeparadoresForaDeAspas(cabecalho, ',') ? ';' : ',';
+                        const linhasDados = linhas.slice(1);
+
+                        linhasDados.forEach(linha => {
+                            const col = parseLinhaCSV(linha, separador);
+                            if (col.length < 4 || !col[0]) return;
+
+                            const idProd = col[0].trim();
+                            const isPromoLinha = col[4] ? col[4].trim().toUpperCase() === 'PROMOCAO' : false;
+                            
+                            if (!mapaProdutos[idProd]) {
+                                mapaProdutos[idProd] = {
+                                    id: parseInt(idProd),
+                                    nome: col[1],
+                                    marca: col[2],
+                                    promo: isPromoLinha,
+                                    promoMercados: []
+                                };
+                                mercados.forEach(merc => mapaProdutos[idProd][`preco${merc.id}`] = 0);
+                            }
+
+                            if (isPromoLinha) {
+                                mapaProdutos[idProd].promo = true;
+                                if (!mapaProdutos[idProd].promoMercados.includes(m.nome)) {
+                                    mapaProdutos[idProd].promoMercados.push(m.nome);
+                                }
+                            }
+
+                            mapaProdutos[idProd][`preco${m.id}`] = parseFloat((col[3] || "0").replace(',', '.'));
+                        });
+                    } catch (e) {
+                        console.error(`Erro no mercado ${m.nome}:`, e);
+                    }
+                }
+
+                produtos = Object.values(mapaProdutos);
+                sincronizarListaComProdutos();
+
+                const novaAssinaturaPrecos = gerarAssinaturaPrecos(produtos);
+                if (novaAssinaturaPrecos && novaAssinaturaPrecos !== assinaturaPrecosAtual) {
+                    assinaturaPrecosAtual = novaAssinaturaPrecos;
+                    definirStorage(CHAVE_ASSINATURA_PRECOS, assinaturaPrecosAtual);
+                    ultimaAtualizacaoRegistrada = new Date().toISOString();
+                    definirStorage(CHAVE_ULTIMA_ATUALIZACAO, ultimaAtualizacaoRegistrada);
+                }
+
+                atualizarIndicadorData('ok');
+                
+                filtrarProdutos();
+                renderizarMercados();
+                renderizarCarrinho();
+            } catch (erro) { 
+                atualizarIndicadorData('erro');
+                console.error("Erro Geral:", erro); 
+            }
+        }
+
+        function renderizarHome(listaParaExibir, isBusca) {
+            const geralCont = document.getElementById('comparativo-geral');
+            const promoCont = document.getElementById('promo-container');
+            geralCont.innerHTML = '';
+            
+            if(!isBusca) {
+                document.getElementById('secao-promocoes').classList.remove('hidden');
+                promoCont.innerHTML = '';
+                produtos
+                    .filter(p => Array.isArray(p.promoMercados) && p.promoMercados.length > 0)
+                    .forEach(p => {
+                        const precosPromocao = mercados
+                            .filter(m => p.promoMercados.includes(m.nome))
+                            .map(m => p[`preco${m.id}`])
+                            .filter(v => v > 0);
+
+                        if (precosPromocao.length === 0) return;
+
+                        const minP = Math.min(...precosPromocao);
+                        const mercadosPromocao = p.promoMercados.join(', ');
+
+                        promoCont.innerHTML += `
+                            <div class="promo-card min-w-[180px] p-3 rounded-2xl border border-blue-100 shadow-sm">
+                                <h4 class="font-bold text-gray-800 text-xs truncate">${p.nome} <span class="text-[10px] text-gray-500 font-semibold">(${p.marca})</span></h4>
+                                <p class="text-[9px] text-blue-600 font-bold uppercase">${mercadosPromocao}</p>
+                                <p class="text-green-600 font-black text-base">R$ ${minP.toFixed(2)}</p>
+                            </div>`;
+                    });
+            } else {
+                document.getElementById('secao-promocoes').classList.add('hidden');
+            }
+
+            listaParaExibir.forEach(p => {
+                const itemNaLista = minhaLista.find(item => item.id === p.id);
+                const qtd = itemNaLista ? itemNaLista.quantidade : 0;
+                const precosValidos = mercados.map(m => p[`preco${m.id}`]).filter(v => v > 0);
+                if (precosValidos.length === 0) return;
+                const minP = Math.min(...precosValidos);
+
+                if(isBusca) {
+                    geralCont.innerHTML += `
+                        <div class="bg-white p-4 rounded-2xl border-2 border-blue-50 shadow-md">
+                            <div class="flex justify-between items-start mb-3">
+                                <div><h4 class="font-black text-gray-800 text-sm uppercase">${p.nome}</h4><p class="text-[10px] text-gray-400">${p.marca}</p></div>
+                                ${renderSeletorQtd(p.id, qtd)}
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-dashed">
+                                ${mercados.map(m => {
+                                    const v = p[`preco${m.id}`];
+                                    if(!v) return '';
+                                    return `<div class="text-center p-1 rounded ${v === minP ? 'bg-green-50' : 'bg-gray-50'}">
+                                        <p class="text-[7px] uppercase font-bold text-gray-400">${m.nome}</p>
+                                        <p class="text-[10px] font-black ${v === minP ? 'text-green-600' : 'text-gray-600'}">R$ ${v.toFixed(2)}</p>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                } else {
+                    const mIdeal = mercados.find(m => p[`preco${m.id}`] === minP);
+                    geralCont.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                            <div class="flex-1">
+                                <h4 class="text-sm font-bold text-gray-800">${p.nome} <span class="text-[9px] text-gray-400 font-normal">(${p.marca})</span></h4>
+                                <p class="text-[10px]"><span class="bg-green-100 text-green-700 px-1.5 rounded font-bold">R$ ${minP.toFixed(2)}</span> no ${mIdeal.nome}</p>
+                            </div>
+                            ${renderSeletorQtd(p.id, qtd)}
+                        </div>`;
+                }
+            });
+        }
+
+        function renderSeletorQtd(id, qtd) {
+            if (qtd === 0) return `<button onclick="adicionarLista(${id})" class="bg-green-600 text-white text-[10px] px-3 py-2 rounded-lg font-bold uppercase shadow-sm active:scale-95 transition">Adicionar</button>`;
+            return `<div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border">
+                <button onclick="removerItemEspecifico(${id})" class="w-7 h-7 flex items-center justify-center bg-white rounded-md text-red-500 shadow-sm active:scale-75"><i class="fas ${qtd === 1 ? 'fa-trash-alt' : 'fa-minus'} text-[10px]"></i></button>
+                <span class="text-xs font-black text-blue-700 min-w-[15px] text-center">${qtd}</span>
+                <button onclick="adicionarLista(${id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm active:scale-75"><i class="fas fa-plus text-[10px]"></i></button>
+            </div>`;
+        }
+
+        function filtrarProdutos() {
+            const termo = normalizarTexto(document.getElementById('mainSearch').value);
+            const filtrados = produtos.filter(p => normalizarTexto(p.nome).includes(termo) || normalizarTexto(p.marca).includes(termo));
+            renderizarHome(filtrados, termo.length > 0);
+        }
+
+        function filtrarProdutosComDebounce() {
+            clearTimeout(timeoutBusca);
+            timeoutBusca = setTimeout(filtrarProdutos, 180);
+        }
+
+        function adicionarLista(id) { 
+            const item = minhaLista.find(i => i.id === id);
+            if (item) item.quantidade++;
+            else { const p = produtos.find(prod => prod.id === id); minhaLista.push({ ...p, quantidade: 1 }); }
+            atualizarTelas();
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function removerItemEspecifico(id) { 
+            const item = minhaLista.find(i => i.id === id);
+            if (item) {
+                if (item.quantidade > 1) item.quantidade--;
+                else minhaLista = minhaLista.filter(i => i.id !== id);
+            }
+            atualizarTelas();
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function atualizarTelas() {
+            salvarListaNoStorage();
+            filtrarProdutos();
+            renderizarCarrinho();
+            const x = document.getElementById("toast"); x.className = "show"; setTimeout(() => x.className = x.className.replace("show", ""), 2000);
+        }
+
+        function toggleItensCarrinho(idMercado) {
+            const div = document.getElementById('detalhe-itens-' + idMercado);
+            const icon = document.getElementById('icon-arrow-' + idMercado);
+
+            if (!div || !icon) return;
+
+            div.classList.toggle('aberto');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+
+            if (div.classList.contains('aberto')) detalhesCarrinhoAbertos.add(idMercado);
+            else detalhesCarrinhoAbertos.delete(idMercado);
+        }
+
+        function renderizarCarrinho() {
+            const cont = document.getElementById('resumo-carrinho');
+            const vazio = document.getElementById('carrinho-vazio');
+            const btnLimpar = document.getElementById('btn-limpar-container');
+            if(minhaLista.length === 0) {
+                detalhesCarrinhoAbertos.clear();
+                cont.innerHTML = '';
+                vazio.classList.remove('hidden');
+                btnLimpar.classList.add('hidden');
+                return;
+            }
+            vazio.classList.add('hidden'); btnLimpar.classList.remove('hidden');
+
+            const resumoMercados = mercados.map(m => {
+                let totalM = 0;
+                let itensSemPreco = 0;
+                const listaItensHtml = minhaLista.map(p => {
+                    const preco = p[`preco${m.id}`];
+                    const temPreco = preco > 0;
+
+                    if (temPreco) totalM += preco * p.quantidade;
+                    else itensSemPreco++;
+
+                    return `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 gap-2">
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[11px] text-gray-600 block truncate">${p.quantidade}x ${p.nome} <span class="font-bold">(${p.marca})</span></span>
+                            <span class="text-[11px] font-bold ${temPreco ? 'text-gray-800' : 'text-amber-500'} block">${temPreco ? `R$ ${(preco * p.quantidade).toFixed(2)}` : 'Sem preço'}</span>
+                        </div>
+                        <div class="flex items-center gap-1 bg-white/70 p-1 rounded-lg border border-slate-100">
+                            <button onclick="event.stopPropagation(); removerItemEspecifico(${p.id})" class="w-7 h-7 flex items-center justify-center bg-white border border-red-100 rounded-md text-red-500 shadow-sm active:scale-75" title="Excluir 1 item" aria-label="Excluir 1 item">
+                                <i class="fas fa-trash-alt text-[10px]"></i>
+                            </button>
+                            <span class="text-xs font-black text-blue-700 min-w-[15px] text-center">${p.quantidade}</span>
+                            <button onclick="event.stopPropagation(); adicionarLista(${p.id})" class="w-7 h-7 flex items-center justify-center bg-green-600 rounded-md text-white shadow-sm active:scale-75" title="Adicionar 1 item">
+                                <i class="fas fa-plus text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                return { mercado: m, total: totalM, itensSemPreco, listaItensHtml };
+            }).sort((a, b) => {
+                if (a.itensSemPreco !== b.itensSemPreco) return a.itensSemPreco - b.itensSemPreco;
+                return a.total - b.total;
+            });
+
+            const primeiroMercadoCompleto = resumoMercados.find(r => r.itensSemPreco === 0);
+
+            cont.innerHTML = resumoMercados.map(({ mercado, total, itensSemPreco, listaItensHtml }) => {
+                const mercadoEstaAberto = detalhesCarrinhoAbertos.has(mercado.id);
+                const destaqueMaisBarato = primeiroMercadoCompleto && mercado.id === primeiroMercadoCompleto.mercado.id
+                    ? `<span class="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-1 rounded-full">Mais barato</span>`
+                    : '';
+
+                const infoCobertura = itensSemPreco > 0
+                    ? `<p class="text-[10px] text-amber-500 font-bold">${itensSemPreco} item(ns) sem preço neste mercado</p>`
+                    : `<p class="text-[10px] text-gray-400">${minhaLista.length} itens na lista</p>`;
+
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                    <div onclick="toggleItensCarrinho('${mercado.id}')" class="p-4 flex justify-between items-center cursor-pointer active:bg-gray-50 transition">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-gray-800 text-sm">${mercado.nome} <i id="icon-arrow-${mercado.id}" class="fas ${mercadoEstaAberto ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px] ml-1 text-gray-400"></i></h3>
+                                ${destaqueMaisBarato}
+                            </div>
+                            ${infoCobertura}
+                        </div>
+                        <div class="text-right"><p class="text-lg font-black text-blue-600">R$ ${total.toFixed(2)}</p></div>
+                    </div>
+                    <div id="detalhe-itens-${mercado.id}" class="detalhe-itens-carrinho ${mercadoEstaAberto ? 'aberto' : ''} bg-slate-50 px-4 pb-3">
+                        ${listaItensHtml}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderizarMercados() { 
+            const cont = document.getElementById('lista-mercados'); 
+            cont.innerHTML = mercados.map(m => `
+                <div onclick="abrirMercado('${m.id}')" class="bg-white p-4 rounded-xl border flex justify-between items-center cursor-pointer shadow-sm active:bg-slate-50">
+                    <span class="font-bold text-gray-700">${m.nome}</span>
+                    <i class="fas fa-chevron-right text-gray-200"></i>
+                </div>`).join(''); 
+        }
+
+        function abrirMercado(id) { 
+            mercadoAtualId = id;
+            const m = mercados.find(merc => merc.id === id); 
+            document.getElementById('lista-mercados').classList.add('hidden'); 
+            document.getElementById('detalhe-mercado').classList.remove('hidden'); 
+            document.getElementById('mercado-header-info').innerHTML = `<div class="bg-blue-700 p-4 rounded-xl text-white shadow-md"><h3 class="font-bold">${m.nome}</h3></div>`; 
+            
+            document.getElementById('produtos-mercado-especifico').innerHTML = produtos.map(p => {
+                const itemNaLista = minhaLista.find(item => item.id === p.id);
+                const qtd = itemNaLista ? itemNaLista.quantidade : 0;
+                const precoM = p[`preco${id}`];
+                if(precoM <= 0) return ''; // Não mostra produto sem preço no mercado
+                
+                return `
+                <div class="bg-white p-3 rounded-lg border flex justify-between items-center text-sm shadow-sm">
+                    <div class="flex-1">
+                        <div class="flex flex-col">
+                            <span class="font-medium text-gray-800">${p.nome}</span>
+                            <span class="text-[10px] text-gray-400 font-bold uppercase">${p.marca}</span>
+                        </div>
+                        <p class="text-[11px] font-bold text-blue-600 mt-1">R$ ${precoM.toFixed(2)}</p>
+                    </div>
+                    ${renderSeletorQtd(p.id, qtd)}
+                </div>`;
+            }).join(''); 
+        }
+
+        function voltarMercados() { 
+            mercadoAtualId = null;
+            document.getElementById('lista-mercados').classList.remove('hidden'); 
+            document.getElementById('detalhe-mercado').classList.add('hidden'); 
+        }
+
+        function limparLista() { 
+            minhaLista = []; 
+            atualizarTelas(); 
+            if(mercadoAtualId) abrirMercado(mercadoAtualId);
+        }
+
+        function showTab(id, el) { 
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active')); 
+            document.querySelectorAll('.nav-btn').forEach(b => { b.classList.add('text-gray-400'); b.classList.remove('active'); }); 
+            document.getElementById('tab-' + id).classList.add('active'); 
+            el.classList.add('active'); el.classList.remove('text-gray-400'); 
+        }
+        
+        window.onload = () => {
+            atualizarIndicadorData('ok');
+            carregarDadosDaPlanilha();
+        };
+   
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker registrado!', reg))
+        .catch(err => console.log('Erro ao registrar SW', err));
+    });
+  }
+</script>
 </body>
+</html>
+
